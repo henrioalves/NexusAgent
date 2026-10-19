@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { Sparkles } from "lucide-react";
 import { AgentConfigProvider, useAgentConfig } from "./context/AgentConfigContext";
 import { LoginScreen } from "./components/auth/LoginScreen";
+import { AccountTypeSetup } from "./components/auth/AccountTypeSetup";
 import { Header } from "./components/layout/Header";
 import { TabBar } from "./components/layout/TabBar";
 import { PageTitle } from "./components/layout/PageTitle";
@@ -26,15 +27,17 @@ import { ChatDrawer } from "./components/modals/ChatDrawer";
 function AppContent() {
   const {
     user,
+    userProfile,
     authLoading,
+    profileLoading,
     configLoading,
     activeTab,
     activeModal,
     setActiveModal,
   } = useAgentConfig();
 
-  // 1. Tela de Carregamento Inicial de Autenticação
-  if (authLoading) {
+  // 1. Tela de Carregamento Inicial de Autenticação / Perfil
+  if (authLoading || (user && profileLoading && !userProfile)) {
     return (
       <div className="min-h-screen bg-[#f5f5f7] flex flex-col justify-center items-center p-4">
         <div className="w-12 h-12 rounded-2xl bg-black text-white grid place-items-center mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.15)] animate-pulse">
@@ -50,6 +53,11 @@ function AppContent() {
   // 2. Barreira de Entrada: Se não autenticado, renderiza EXCLUSIVAMENTE a tela de Login
   if (!user) {
     return <LoginScreen />;
+  }
+
+  // 3. Gatekeeper: Se logado porém account_type na tabela user_profiles estiver vazio/nulo, renderiza APENAS a tela de setup
+  if (!userProfile?.account_type) {
+    return <AccountTypeSetup />;
   }
 
   return (

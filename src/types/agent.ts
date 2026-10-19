@@ -1,4 +1,14 @@
 export type ProfileType = "empresa" | "profissional" | "pessoal";
+export type AccountType = "company" | "professional" | "personal";
+
+export interface UserProfile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  account_type: AccountType | null;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export type TabType = "connections" | "contacts" | "schedule" | "identity" | "knowledge";
 

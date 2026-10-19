@@ -2,8 +2,30 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import type { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "../services/supabase";
-import type { AgentConfig, TabType, ProfileType } from "../types/agent";
+import type { AgentConfig, TabType, ProfileType, AccountType, UserProfile } from "../types/agent";
 import { agentConfigSchema, initialConfig, safeHydrateConfig } from "../schemas/agentSchema";
+
+export const accountTypeToProfileType = (type: AccountType): ProfileType => {
+  switch (type) {
+    case "company":
+      return "empresa";
+    case "professional":
+      return "profissional";
+    case "personal":
+      return "pessoal";
+  }
+};
+
+export const profileTypeToAccountType = (profile: ProfileType): AccountType => {
+  switch (profile) {
+    case "empresa":
+      return "company";
+    case "profissional":
+      return "professional";
+    case "pessoal":
+      return "personal";
+  }
+};
 
 const STORAGE_KEY = "nexusagent-config";
 
@@ -17,12 +39,18 @@ export interface ConfirmOptions {
 }
 
 interface AgentConfigContextType {
-  // Autenticação & Sessão
+  // Autenticação & Sessão & Perfil
   user: User | null;
   session: Session | null;
+  userProfile: UserProfile | null;
   authLoading: boolean;
+  profileLoading: boolean;
   configLoading: boolean;
   logout: () => Promise<void>;
+  updateUserProfile: (
+    updates: Partial<Pick<UserProfile, "full_name" | "avatar_url" | "account_type">>
+  ) => Promise<boolean>;
+  reloadUserProfile: () => Promise<void>;
 
   // Estado da Configuração
   config: AgentConfig;
@@ -55,10 +83,12 @@ interface AgentConfigContextType {
 const AgentConfigContext = createContext<AgentConfigContextType | null>(null);
 
 export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Estados de Autenticação Supabase
+  // Estados de Autenticação Supabase & Perfil
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [configLoading, setConfigLoading] = useState(false);
 
   // Estados de Configuração
@@ -97,7 +127,66 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Carregamento da Configuração do Supabase (Multi-Tenant isolado por user_id)
+  // 2. Busca e Sincronização do Perfil do Usuário (user_profiles)
+  const fetchUserProfile = async (userId: string) => {
+    setProfileLoading(true);
+    try {
+      let { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao carregar user_profiles:", error);
+      }
+
+      if (!data) {
+        // Fallback de contingência caso a trigger ainda não tenha executado
+        const initialProfile = {
+          id: userId,
+          full_name: (user?.user_metadata?.full_name || user?.user_metadata?.name || "") as string,
+          avatar_url: (user?.user_metadata?.avatar_url || user?.user_metadata?.picture || "") as string,
+          account_type: null,
+        };
+        const { data: created } = await supabase
+          .from("user_profiles")
+          .insert(initialProfile)
+          .select()
+          .single();
+        if (created) data = created;
+      }
+
+      if (data) {
+        setUserProfile(data as UserProfile);
+        if (data.account_type) {
+          const mappedProfile = accountTypeToProfileType(data.account_type as AccountType);
+          setConfig((prev) => {
+            if (prev.profile !== mappedProfile) {
+              const updated = { ...prev, profile: mappedProfile };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Falha ao comunicar com Supabase (user_profiles):", err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setUserProfile(null);
+      return;
+    }
+    fetchUserProfile(user.id);
+  }, [user]);
+
+  // 3. Carregamento da Configuração do Supabase (Multi-Tenant isolado por user_id)
   useEffect(() => {
     if (!user) return;
 
@@ -261,7 +350,74 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setUserProfile(null);
     toast.info("Você saiu da sua conta NexusAgent.");
+  };
+
+  const reloadUserProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user.id);
+    }
+  };
+
+  const updateUserProfile = async (
+    updates: Partial<Pick<UserProfile, "full_name" | "avatar_url" | "account_type">>
+  ): Promise<boolean> => {
+    if (!user) {
+      toast.error("Usuário não autenticado.");
+      return false;
+    }
+
+    try {
+      const payload: Record<string, unknown> = {
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .update(payload)
+        .eq("id", user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Erro ao atualizar perfil do usuário:", error);
+        toast.error("Não foi possível atualizar o perfil", {
+          description: error.message,
+        });
+        return false;
+      }
+
+      setUserProfile(data as UserProfile);
+
+      // Se account_type foi selecionado ou alterado, sincroniza config.profile
+      if (updates.account_type) {
+        const nextProfile = accountTypeToProfileType(updates.account_type);
+        setConfig((prev) => {
+          const updated = { ...prev, profile: nextProfile };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+        setSavedConfig((prev) => ({ ...prev, profile: nextProfile }));
+
+        // Atualiza a linha de agent_configs na nuvem
+        await supabase.from("agent_configs").upsert(
+          {
+            user_id: user.id,
+            config: { ...config, profile: nextProfile },
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+      }
+
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error("Erro ao atualizar perfil", { description: msg });
+      return false;
+    }
   };
 
   const connectWhatsApp = () => {
@@ -325,9 +481,13 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
       value={{
         user,
         session,
+        userProfile,
         authLoading,
+        profileLoading,
         configLoading,
         logout,
+        updateUserProfile,
+        reloadUserProfile,
         config,
         savedConfig,
         isDirty,

@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sparkles, Lock, Mail, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../services/supabase";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { Checkbox } from "../ui/Controls";
+
+const REMEMBER_EMAIL_KEY = "nexusagent_remember_email";
 
 interface LoginScreenProps {
   onLoginSuccess?: () => void;
@@ -12,7 +15,16 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY);
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +72,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       }
 
       if (data?.session) {
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_EMAIL_KEY, trimmedEmail);
+        } else {
+          localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+
         toast.success("Autenticado com sucesso!", {
           description: "Carregando o painel de gerenciamento do NexusAgent...",
         });
@@ -84,9 +102,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           <div className="w-12 h-12 rounded-2xl bg-black text-white grid place-items-center mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
             <Sparkles size={22} />
           </div>
-          <span className="eyebrow mb-1 text-[11px] tracking-widest text-[#86868b] font-bold">
-            SISTEMA SaaS MULTI-TENANT
-          </span>
           <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] mb-1.5">
             NexusAgent
           </h1>
@@ -127,6 +142,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
               className="h-11 text-sm bg-[#fafafa] border-[rgba(0,0,0,0.1)] focus:border-black"
+            />
+          </div>
+
+          {/* CHECKBOX LEMBRE-SE DE MIM */}
+          <div className="pt-0.5">
+            <Checkbox
+              label="Lembre-se de mim"
+              checked={rememberMe}
+              onChange={setRememberMe}
+              disabled={loading}
             />
           </div>
 
