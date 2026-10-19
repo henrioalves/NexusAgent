@@ -33,7 +33,7 @@ export const ConnectionsTab: React.FC = () => {
             <div className="grow">
               <b>Atendimento Nexus</b>
               <span>{config.whatsappPhone || "+55 11 99999-9999"}</span>
-              <small>Instância: {config.whatsappInstance || "nexusmind-main"}</small>
+              <small>Instância: {config.whatsappInstance || "NexusAgent-main"}</small>
             </div>
             <Badge variant="success" dot>
               Online
@@ -93,7 +93,7 @@ export const ConnectionsTab: React.FC = () => {
             <div className="connected-profile">
               <div className="avatar subtle">GC</div>
               <div className="grow">
-                <b>contato@nexusmind.ai</b>
+                <b>contato@NexusAgent.ai</b>
                 <span>Conta Google vinculada</span>
               </div>
               <Badge variant="success" dot>

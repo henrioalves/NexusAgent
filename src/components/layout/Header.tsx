@@ -30,12 +30,12 @@ export const Header: React.FC = () => {
         <button
           className="brand"
           onClick={() => setActiveTab("connections")}
-          title="NexusMind - Início"
+          title="NexusAgent - Início"
         >
           <span className="brand-mark">
             <Sparkles size={16} />
           </span>
-          <b>NexusMind</b>
+          <b>NexusAgent</b>
         </button>
 
         <div className="hidden sm:flex items-center gap-1">

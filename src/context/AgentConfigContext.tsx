@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { AgentConfig, TabType, ProfileType } from "../types/agent";
 import { initialConfig, safeHydrateConfig } from "../schemas/agentSchema";
 
-const STORAGE_KEY = "nexusmind-config";
+const STORAGE_KEY = "NexusAgent-config";
 
 export interface ConfirmOptions {
   title: string;
@@ -127,7 +127,7 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const connectWhatsApp = () => {
     patchConfig({
       whatsapp: true,
-      whatsappInstance: "nexusmind-main",
+      whatsappInstance: "NexusAgent-main",
       whatsappPhone: config.whatsappPhone || "+55 11 99999-9999",
     });
     setActiveModal(null);

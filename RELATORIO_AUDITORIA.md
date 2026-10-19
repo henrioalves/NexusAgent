@@ -1,5 +1,5 @@
 # 📋 RELATÓRIO DE AUDITORIA TÉCNICA, ARQUITETURAL E UI/UX
-**Projeto:** NexusAgent / NexusMind — Microssistema SaaS de Configuração e Personalização de Agente IA  
+**Projeto:** NexusAgent / NexusAgent — Microssistema SaaS de Configuração e Personalização de Agente IA  
 **Stack Principal:** React 19, TypeScript 5.7, Tailwind CSS v4, Vite 8 (Figma Make scaffold)  
 **Integrações Alvo:** n8n (Orquestrador/Workflow), Evolution API (WhatsApp), Google Calendar (Agenda) e Supabase (Auth/DB/RAG)  
 **Data da Auditoria:** 16 de Outubro de 2026  
@@ -128,7 +128,7 @@ A análise do arquivo `package.json` revela uma base excessivamente reduzida her
   ```typescript
   const [config, setConfig] = useState<Config>(() => {
     try { 
-      return { ...initialConfig, ...JSON.parse(localStorage.getItem("nexusmind-config") || "{}") }; 
+      return { ...initialConfig, ...JSON.parse(localStorage.getItem("NexusAgent-config") || "{}") }; 
     } catch { 
       return initialConfig; 
     }
@@ -430,7 +430,7 @@ gantt
 
 ### 🎯 FASE 1: Refatoração, Modularização e Arquitetura Limpa
 1. **Atualização do `package.json`:**
-   - Renomear o projeto para `"nexusmind-app"`.
+   - Renomear o projeto para `"NexusAgent-app"`.
    - Adicionar dependências fundamentais: `lucide-react`, `zod`, `sonner`, `clsx`, `tailwind-merge` e `date-fns`.
 2. **Decomposição do `src/App.tsx`:**
    - Criar os módulos da árvore proposta na Seção 1.3.

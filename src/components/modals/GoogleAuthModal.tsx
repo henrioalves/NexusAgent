@@ -26,7 +26,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ isOpen, onClos
 
         <h3>Autorizar acesso à sua agenda</h3>
         <p>
-          O NexusMind poderá consultar horários livres, criar novos eventos autorizados e reagendar compromissos em tempo real.
+          O NexusAgent poderá consultar horários livres, criar novos eventos autorizados e reagendar compromissos em tempo real.
         </p>
 
         <div className="permission-list">

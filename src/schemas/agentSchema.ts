@@ -33,7 +33,7 @@ export const initialConfig: AgentConfig = {
   profile: "empresa",
   active: true,
   whatsapp: false,
-  whatsappInstance: "nexusmind-main",
+  whatsappInstance: "NexusAgent-main",
   whatsappPhone: "+55 11 99999-9999",
   calendar: false,
   calendarName: "Agenda principal",
@@ -153,7 +153,7 @@ export const agentConfigSchema = z.object({
   profile: z.enum(["empresa", "profissional", "pessoal"]).default("empresa"),
   active: z.boolean().default(true),
   whatsapp: z.boolean().default(false),
-  whatsappInstance: z.string().optional().default("nexusmind-main"),
+  whatsappInstance: z.string().optional().default("NexusAgent-main"),
   whatsappPhone: z.string().optional().default("+55 11 99999-9999"),
   calendar: z.boolean().default(false),
   calendarName: z.string().default("Agenda principal"),
@@ -353,7 +353,7 @@ export function safeHydrateConfig(raw: unknown): AgentConfig {
     return parsed.data as AgentConfig;
   }
 
-  console.warn("NexusMind: Falha ao validar dados salvos do localStorage. Utilizando mesclagem resiliente.", parsed.error);
+  console.warn("NexusAgent: Falha ao validar dados salvos do localStorage. Utilizando mesclagem resiliente.", parsed.error);
   return {
     ...initialConfig,
     ...(typeof raw === "object" ? (raw as Partial<AgentConfig>) : {}),
