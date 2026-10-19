@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { supabase } from "../services/supabase";
 import type { AgentConfig, TabType, ProfileType } from "../types/agent";
-import { initialConfig, safeHydrateConfig } from "../schemas/agentSchema";
+import { agentConfigSchema, initialConfig, safeHydrateConfig } from "../schemas/agentSchema";
 
-const STORAGE_KEY = "NexusAgent-config";
+const STORAGE_KEY = "nexusagent-config";
 
 export interface ConfirmOptions {
   title: string;
@@ -15,6 +17,14 @@ export interface ConfirmOptions {
 }
 
 interface AgentConfigContextType {
+  // Autenticação & Sessão
+  user: User | null;
+  session: Session | null;
+  authLoading: boolean;
+  configLoading: boolean;
+  logout: () => Promise<void>;
+
+  // Estado da Configuração
   config: AgentConfig;
   savedConfig: AgentConfig;
   isDirty: boolean;
@@ -45,6 +55,13 @@ interface AgentConfigContextType {
 const AgentConfigContext = createContext<AgentConfigContextType | null>(null);
 
 export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Estados de Autenticação Supabase
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [configLoading, setConfigLoading] = useState(false);
+
+  // Estados de Configuração
   const [config, setConfig] = useState<AgentConfig>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -60,6 +77,77 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [discardNonce, setDiscardNonce] = useState(0);
   const [confirmModal, setConfirmModal] = useState<ConfirmOptions | null>(null);
+
+  // 1. Monitoramento da Sessão Supabase
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. Carregamento da Configuração do Supabase (Multi-Tenant isolado por user_id)
+  useEffect(() => {
+    if (!user) return;
+
+    let isMounted = true;
+    const fetchRemoteConfig = async () => {
+      setConfigLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("agent_configs")
+          .select("config")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Erro ao carregar configuração do Supabase:", error);
+          toast.error("Erro ao carregar configuração da nuvem", {
+            description: "Usando cópia de contingência local.",
+          });
+          return;
+        }
+
+        if (!isMounted) return;
+
+        if (data && data.config) {
+          const hydrated = safeHydrateConfig(data.config);
+          setConfig(hydrated);
+          setSavedConfig(hydrated);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(hydrated));
+        } else {
+          // Primeira inicialização do tenant: cria registro inicial no banco
+          setConfig(initialConfig);
+          setSavedConfig(initialConfig);
+          await supabase.from("agent_configs").insert({
+            user_id: user.id,
+            config: initialConfig,
+          });
+        }
+      } catch (err) {
+        console.error("Falha ao comunicar com Supabase:", err);
+      } finally {
+        if (isMounted) setConfigLoading(false);
+      }
+    };
+
+    fetchRemoteConfig();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   // Detecção profunda de alteração (Dirty State)
   const isDirty = useMemo(() => {
@@ -86,17 +174,50 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   };
 
+  // 3. Salvar e Atualizar Agente via UPSERT no Supabase
   const saveConfig = async () => {
+    if (!user) {
+      toast.error("Sessão não autenticada", {
+        description: "Faça login novamente para persistir alterações na nuvem.",
+      });
+      return;
+    }
+
+    // Validação estrita via Zod antes do envio
+    const parsed = agentConfigSchema.safeParse(config);
+    if (!parsed.success) {
+      toast.error("Dados inválidos para salvamento", {
+        description: "Verifique os campos do formulário e tente novamente.",
+      });
+      return;
+    }
+
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      const { error } = await supabase.from("agent_configs").upsert(
+        {
+          user_id: user.id,
+          config: parsed.data,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+      if (error) {
+        console.error("Erro no upsert Supabase:", error);
+        toast.error("Falha ao salvar no banco de dados", {
+          description: error.message || "Ocorreu um erro ao sincronizar com o Supabase.",
+        });
+        return;
+      }
+
       setSavedConfig(config);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
       toast.success("Configurações salvas e agente sincronizado!", {
-        description: "Todos os canais e fluxos foram atualizados com sucesso.",
+        description: "Dados persistidos com segurança no Supabase e prontos para o n8n.",
       });
-    } catch (err) {
-      toast.error("Erro ao salvar configurações", {
-        description: "Ocorreu uma falha ao gravar no armazenamento local.",
-      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error("Erro ao salvar configurações", { description: msg });
     }
   };
 
@@ -114,20 +235,39 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
       message: "Todas as suas personalizações, regras e conexões serão resetadas para as configurações originais.",
       confirmLabel: "Sim, restaurar",
       isDestructive: true,
-      onConfirm: () => {
+      onConfirm: async () => {
         setConfig(initialConfig);
         setSavedConfig(initialConfig);
-        localStorage.removeItem(STORAGE_KEY);
         setDiscardNonce((n) => n + 1);
+
+        if (user) {
+          await supabase.from("agent_configs").upsert(
+            {
+              user_id: user.id,
+              config: initialConfig,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" }
+          );
+        }
+
+        localStorage.removeItem(STORAGE_KEY);
         toast.success("Configurações redefinidas para o padrão inicial.");
       },
     });
   };
 
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    toast.info("Você saiu da sua conta NexusAgent.");
+  };
+
   const connectWhatsApp = () => {
     patchConfig({
       whatsapp: true,
-      whatsappInstance: "NexusAgent-main",
+      whatsappInstance: "nexusagent-main",
       whatsappPhone: config.whatsappPhone || "+55 11 99999-9999",
     });
     setActiveModal(null);
@@ -183,6 +323,11 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   return (
     <AgentConfigContext.Provider
       value={{
+        user,
+        session,
+        authLoading,
+        configLoading,
+        logout,
         config,
         savedConfig,
         isDirty,
@@ -219,4 +364,3 @@ export function useAgentConfig() {
   }
   return ctx;
 }
-

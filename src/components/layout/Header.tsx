@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Code2, FlaskConical, Calendar, Phone, Wand2 } from "lucide-react";
+import { Sparkles, Code2, FlaskConical, Wand2, LogOut } from "lucide-react";
 import { useAgentConfig } from "../../context/AgentConfigContext";
 import { Button } from "../ui/Button";
 import { SegmentedControl } from "../ui/Controls";
@@ -8,6 +8,8 @@ import type { ProfileType } from "../../types/agent";
 
 export const Header: React.FC = () => {
   const {
+    user,
+    logout,
     config,
     patchConfig,
     setActiveTab,
@@ -110,8 +112,19 @@ export const Header: React.FC = () => {
         >
           <span className="hidden sm:inline">Testar agente</span>
         </Button>
+
+        {/* Botão de Logout / Sair da Conta */}
+        {user && (
+          <Button
+            variant="ghost"
+            icon={LogOut}
+            onClick={logout}
+            title={`Sair da conta (${user.email || ""})`}
+            className="px-2.5 text-muted hover:text-red-600"
+            aria-label="Sair da conta"
+          />
+        )}
       </div>
     </header>
   );
 };
-

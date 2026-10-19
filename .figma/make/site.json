@@ -1,4 +1,5 @@
 {
+  "title": "NexusAgent",
   "description": "Manage and customize an AI agent for WhatsApp with seamless integration to Google Calendar, offering users control over communication and scheduling.",
   "robots": {
     "index": false
