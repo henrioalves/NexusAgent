@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "../services/supabase";
@@ -108,6 +108,10 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [discardNonce, setDiscardNonce] = useState(0);
   const [confirmModal, setConfirmModal] = useState<ConfirmOptions | null>(null);
 
+  // Referências para evitar múltiplos loadings/flickering ao trocar de aba ou foco
+  const initialProfileLoadedRef = useRef<string | null>(null);
+  const initialConfigLoadedRef = useRef<string | null>(null);
+
   // 1. Monitoramento da Sessão Supabase
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -120,7 +124,14 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      const nextUser = currentSession?.user ?? null;
+      setUser((prevUser) => {
+        // Preserva a referência se for o mesmo id, evitando re-execuções e flickering de UI
+        if (prevUser?.id === nextUser?.id) {
+          return prevUser;
+        }
+        return nextUser;
+      });
       setAuthLoading(false);
     });
 
@@ -128,8 +139,11 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   // 2. Busca e Sincronização do Perfil do Usuário (user_profiles)
-  const fetchUserProfile = async (userId: string) => {
-    setProfileLoading(true);
+  const fetchUserProfile = async (userId: string, silent = false) => {
+    if (!silent && initialProfileLoadedRef.current !== userId) {
+      setProfileLoading(true);
+    }
+
     try {
       let { data, error } = await supabase
         .from("user_profiles")
@@ -159,6 +173,8 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (data) {
         setUserProfile(data as UserProfile);
+        initialProfileLoadedRef.current = userId;
+
         if (data.account_type) {
           const mappedProfile = accountTypeToProfileType(data.account_type as AccountType);
           setConfig((prev) => {
@@ -178,33 +194,43 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const currentUserId = user?.id;
+
   useEffect(() => {
-    if (!user) {
+    if (!currentUserId) {
       setUserProfile(null);
+      initialProfileLoadedRef.current = null;
+      initialConfigLoadedRef.current = null;
       return;
     }
-    fetchUserProfile(user.id);
-  }, [user]);
+    const isAlreadyLoaded = initialProfileLoadedRef.current === currentUserId;
+    fetchUserProfile(currentUserId, isAlreadyLoaded);
+  }, [currentUserId]);
 
   // 3. Carregamento da Configuração do Supabase (Multi-Tenant isolado por user_id)
   useEffect(() => {
-    if (!user) return;
+    if (!currentUserId) return;
 
     let isMounted = true;
-    const fetchRemoteConfig = async () => {
-      setConfigLoading(true);
+    const fetchRemoteConfig = async (silent = false) => {
+      if (!silent && initialConfigLoadedRef.current !== currentUserId) {
+        setConfigLoading(true);
+      }
+
       try {
         const { data, error } = await supabase
           .from("agent_configs")
           .select("config")
-          .eq("user_id", user.id)
+          .eq("user_id", currentUserId)
           .maybeSingle();
 
         if (error) {
           console.error("Erro ao carregar configuração do Supabase:", error);
-          toast.error("Erro ao carregar configuração da nuvem", {
-            description: "Usando cópia de contingência local.",
-          });
+          if (!silent) {
+            toast.error("Erro ao carregar configuração da nuvem", {
+              description: "Usando cópia de contingência local.",
+            });
+          }
           return;
         }
 
@@ -212,15 +238,26 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         if (data && data.config) {
           const hydrated = safeHydrateConfig(data.config);
-          setConfig(hydrated);
+          initialConfigLoadedRef.current = currentUserId;
+
+          // Se já houver alterações locais não salvas, não sobrescreve silenciosamente em background
+          setConfig((prev) => {
+            const hasLocalChanges = JSON.stringify(prev) !== JSON.stringify(savedConfig);
+            if (hasLocalChanges && silent) {
+              return prev;
+            }
+            return hydrated;
+          });
+
           setSavedConfig(hydrated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(hydrated));
         } else {
           // Primeira inicialização do tenant: cria registro inicial no banco
           setConfig(initialConfig);
           setSavedConfig(initialConfig);
+          initialConfigLoadedRef.current = currentUserId;
           await supabase.from("agent_configs").insert({
-            user_id: user.id,
+            user_id: currentUserId,
             config: initialConfig,
           });
         }
@@ -231,12 +268,13 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     };
 
-    fetchRemoteConfig();
+    const isAlreadyLoaded = initialConfigLoadedRef.current === currentUserId;
+    fetchRemoteConfig(isAlreadyLoaded);
 
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [currentUserId]);
 
   // Detecção profunda de alteração (Dirty State)
   const isDirty = useMemo(() => {
@@ -351,12 +389,14 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setUser(null);
     setSession(null);
     setUserProfile(null);
+    initialProfileLoadedRef.current = null;
+    initialConfigLoadedRef.current = null;
     toast.info("Você saiu da sua conta NexusAgent.");
   };
 
   const reloadUserProfile = async () => {
     if (user) {
-      await fetchUserProfile(user.id);
+      await fetchUserProfile(user.id, true);
     }
   };
 
