@@ -96,8 +96,7 @@ function AppContent() {
 
       {/* Diálogos Modais do Sistema */}
       <QrCodeModal
-        isOpen={activeModal === "qr" || activeModal === "pairing"}
-        initialMode={activeModal === "pairing" ? "pairing" : "qr"}
+        isOpen={activeModal === "qr"}
         onClose={() => setActiveModal(null)}
       />
 

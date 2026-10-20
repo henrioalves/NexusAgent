@@ -1,5 +1,5 @@
 import React from "react";
-import { Phone, Calendar, Check, QrCode, KeyRound } from "lucide-react";
+import { Phone, Calendar, Check, QrCode } from "lucide-react";
 import { useAgentConfig } from "../../context/AgentConfigContext";
 import { Card, Field, Badge } from "../ui/LayoutCards";
 import { Button } from "../ui/Button";
@@ -29,11 +29,10 @@ export const ConnectionsTab: React.FC = () => {
       >
         {config.whatsapp ? (
           <div className="connected-profile">
-            <div className="avatar">NA</div>
+            <div className="avatar">WA</div>
             <div className="grow">
-              <b>Atendimento NexusAgent</b>
-              <span>{config.whatsappPhone || "+55 11 99999-9999"}</span>
-              <small>Instância: {config.whatsappInstance || "nexusagent-main"}</small>
+              <b>{config.whatsappInstance || "WhatsApp Conectado"}</b>
+              <span>{config.whatsappPhone || "Instância ativa"}</span>
             </div>
             <Badge variant="success" dot>
               Online
@@ -57,22 +56,13 @@ export const ConnectionsTab: React.FC = () => {
               Desconectar WhatsApp
             </Button>
           ) : (
-            <>
-              <Button
-                variant="primary"
-                icon={QrCode}
-                onClick={() => setActiveModal("qr")}
-              >
-                Gerar QR Code
-              </Button>
-              <Button
-                variant="secondary"
-                icon={KeyRound}
-                onClick={() => setActiveModal("pairing")}
-              >
-                Usar código de pareamento
-              </Button>
-            </>
+            <Button
+              variant="primary"
+              icon={QrCode}
+              onClick={() => setActiveModal("qr")}
+            >
+              Conectar via QR Code
+            </Button>
           )}
         </div>
       </Card>
@@ -93,7 +83,7 @@ export const ConnectionsTab: React.FC = () => {
             <div className="connected-profile">
               <div className="avatar subtle">GC</div>
               <div className="grow">
-                <b>contato@nexusagent.ai</b>
+                <b>{config.calendarName || "Google Agenda"}</b>
                 <span>Conta Google vinculada</span>
               </div>
               <Badge variant="success" dot>
@@ -102,12 +92,10 @@ export const ConnectionsTab: React.FC = () => {
             </div>
             <Field label="Agenda ativa para agendamentos">
               <Select
-                value={config.calendarName}
+                value={config.calendarName || "Agenda principal"}
                 onChange={(e) => patchConfig({ calendarName: e.target.value })}
               >
                 <option value="Agenda principal">Agenda principal</option>
-                <option value="Consultório">Consultório</option>
-                <option value="Reuniões">Reuniões</option>
               </Select>
             </Field>
           </>
@@ -153,4 +141,5 @@ export const ConnectionsTab: React.FC = () => {
     </div>
   );
 };
+
 

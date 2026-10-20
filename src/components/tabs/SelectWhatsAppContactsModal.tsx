@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, UserPlus, Check, Plus, MessageSquare } from "lucide-react";
+import { Search, Check, Plus, Users } from "lucide-react";
 import { ModalWrapper } from "../ui/ModalWrapper";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -16,27 +16,12 @@ export interface SelectWhatsAppContactsModalProps {
   onAddContacts: (contacts: ContactException[]) => void;
 }
 
-interface MockWhatsAppContact {
+export interface WhatsAppContactItem {
   id: string;
   name: string;
   phone: string;
-  recentActivity: string;
+  recentActivity?: string;
 }
-
-const mockWhatsAppContacts: MockWhatsAppContact[] = [
-  { id: "wa-1", name: "Camila Ramos", phone: "+55 (11) 98765-4321", recentActivity: "Hoje às 14:20" },
-  { id: "wa-2", name: "Rodrigo Silva", phone: "+55 (11) 97123-4567", recentActivity: "Hoje às 12:45" },
-  { id: "wa-3", name: "Fernanda Souza", phone: "+55 (21) 98888-1122", recentActivity: "Hoje às 09:10" },
-  { id: "wa-4", name: "Lucas Oliveira", phone: "+55 (31) 99234-5678", recentActivity: "Ontem" },
-  { id: "wa-5", name: "Amanda Duarte", phone: "+55 (11) 96543-2109", recentActivity: "Ontem" },
-  { id: "wa-6", name: "Carlos Eduardo", phone: "+55 (41) 98456-7890", recentActivity: "18/10/2026" },
-  { id: "wa-7", name: "Mariana Fonseca", phone: "+55 (19) 97321-6540", recentActivity: "18/10/2026" },
-  { id: "wa-8", name: "Gabriel Santos", phone: "+55 (11) 99112-3344", recentActivity: "17/10/2026" },
-  { id: "wa-9", name: "Juliana Menezes", phone: "+55 (81) 98711-2233", recentActivity: "16/10/2026" },
-  { id: "wa-10", name: "Marcelo Peixoto", phone: "+55 (61) 98223-4455", recentActivity: "15/10/2026" },
-  { id: "wa-11", name: "Beatriz Castro", phone: "+55 (11) 96677-8899", recentActivity: "14/10/2026" },
-  { id: "wa-12", name: "Thiago Moreira", phone: "+55 (71) 99345-6789", recentActivity: "12/10/2026" },
-];
 
 export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalProps> = ({
   isOpen,
@@ -45,9 +30,12 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
   existingExceptions,
   onAddContacts,
 }) => {
+  // Lista inicial de contatos 100% limpa (pronta para receber dados reais da Evolution API)
+  const contacts: WhatsAppContactItem[] = [];
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showManualForm, setShowManualForm] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(true);
   const [manualName, setManualName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
 
@@ -59,15 +47,15 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
   }, [existingExceptions]);
 
   const filteredContacts = useMemo(() => {
-    if (!searchTerm.trim()) return mockWhatsAppContacts;
+    if (!searchTerm.trim()) return contacts;
     const term = searchTerm.toLowerCase();
     const digits = term.replace(/\D/g, "");
-    return mockWhatsAppContacts.filter((c) => {
+    return contacts.filter((c) => {
       const matchName = c.name.toLowerCase().includes(term);
       const matchPhone = digits ? c.phone.replace(/\D/g, "").includes(digits) : false;
       return matchName || matchPhone;
     });
-  }, [searchTerm]);
+  }, [contacts, searchTerm]);
 
   const toggleSelect = (id: string, isAlreadyAdded: boolean) => {
     if (isAlreadyAdded) return;
@@ -98,8 +86,8 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
   const handleConfirm = () => {
     const contactsToAdd: ContactException[] = [];
 
-    // Contatos selecionados da lista
-    mockWhatsAppContacts.forEach((c) => {
+    // Contatos selecionados da lista sincronizada
+    contacts.forEach((c) => {
       if (selectedIds.has(c.id)) {
         contactsToAdd.push({
           id: generateUUID(),
@@ -110,7 +98,7 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
     });
 
     // Contato manual se preenchido
-    if (showManualForm && manualName.trim() && manualPhone.trim()) {
+    if (manualName.trim() && manualPhone.trim()) {
       contactsToAdd.push({
         id: generateUUID(),
         name: manualName.trim(),
@@ -127,7 +115,6 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
     setSearchTerm("");
     setManualName("");
     setManualPhone("");
-    setShowManualForm(false);
     onClose();
   };
 
@@ -143,29 +130,7 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
       maxWidth="wide"
     >
       <div className="flex flex-col gap-4 pt-1">
-        {/* Barra de busca e ações rápidas */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Input
-              placeholder="Buscar por nome ou telefone no WhatsApp..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-10 text-sm"
-              autoFocus
-            />
-            <Search size={15} className="absolute left-3 top-3 text-muted pointer-events-none" />
-          </div>
-          <Button
-            variant={showManualForm ? "secondary" : "ghost"}
-            icon={Plus}
-            onClick={() => setShowManualForm(!showManualForm)}
-            className="text-xs"
-          >
-            {showManualForm ? "Fechar manual" : "Digitar número"}
-          </Button>
-        </div>
-
-        {/* Formulário manual expansível caso o número não esteja na lista recente */}
+        {/* Formulário manual para adicionar número diretamente */}
         {showManualForm && (
           <div className="p-3.5 bg-neutral-50 border border-neutral-200/80 rounded-xl flex flex-col sm:flex-row gap-2.5 items-end">
             <div className="flex-1 w-full">
@@ -177,11 +142,12 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
                 value={manualName}
                 onChange={(e) => setManualName(e.target.value)}
                 className="h-9 text-xs"
+                autoFocus
               />
             </div>
             <div className="flex-1 w-full">
               <label className="text-[11px] font-semibold text-neutral-600 block mb-1">
-                WhatsApp
+                WhatsApp com DDD
               </label>
               <Input
                 placeholder="+55 (00) 00000-0000"
@@ -193,36 +159,62 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
           </div>
         )}
 
-        {/* Status de seleção */}
-        <div className="flex items-center justify-between text-xs text-muted px-1">
-          <span>
-            {selectedIds.size} contato(s) selecionado(s)
-          </span>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSelectAllVisible}
-              className="hover:underline font-medium text-neutral-800"
-            >
-              Selecionar visíveis
-            </button>
-            {selectedIds.size > 0 && (
-              <button
-                type="button"
-                onClick={handleClearSelection}
-                className="hover:underline text-neutral-500"
+        {/* Barra de busca e status */}
+        {contacts.length > 0 && (
+          <>
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Buscar por nome ou telefone no WhatsApp..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 text-sm"
+                />
+                <Search size={15} className="absolute left-3 top-3 text-muted pointer-events-none" />
+              </div>
+              <Button
+                variant={showManualForm ? "secondary" : "ghost"}
+                icon={Plus}
+                onClick={() => setShowManualForm(!showManualForm)}
+                className="text-xs"
               >
-                Limpar seleção
-              </button>
-            )}
-          </div>
-        </div>
+                {showManualForm ? "Ocultar manual" : "Digitar número"}
+              </Button>
+            </div>
 
-        {/* Lista visual de contatos */}
+            <div className="flex items-center justify-between text-xs text-muted px-1">
+              <span>{selectedIds.size} contato(s) selecionado(s)</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSelectAllVisible}
+                  className="hover:underline font-medium text-neutral-800"
+                >
+                  Selecionar visíveis
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    className="hover:underline text-neutral-500"
+                  >
+                    Limpar seleção
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Lista visual de contatos ou Empty State */}
         <div className="max-h-[340px] overflow-y-auto flex flex-col border border-neutral-200/70 rounded-xl divide-y divide-neutral-100 bg-white">
           {filteredContacts.length === 0 ? (
-            <div className="py-10 text-center text-xs text-muted">
-              Nenhum contato encontrado com o termo "{searchTerm}".
+            <div className="py-12 px-4 text-center flex flex-col items-center justify-center gap-2 text-muted">
+              <Users size={28} className="text-neutral-300 mb-1" />
+              <b className="text-xs font-semibold text-neutral-700">Nenhum contato sincronizado do WhatsApp</b>
+              <p className="text-[11px] text-neutral-400 max-w-sm m-0">
+                Conecte seu WhatsApp na aba Conexões para sincronizar conversas, ou use os campos manuais acima para cadastrar números.
+              </p>
             </div>
           ) : (
             filteredContacts.map((contact) => {
@@ -242,7 +234,6 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
                       : "hover:bg-neutral-50 cursor-pointer"
                   }`}
                 >
-                  {/* Checkbox circular customizado Apple */}
                   <div
                     className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
                       isAlreadyAdded
@@ -255,12 +246,10 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
                     {(isSelected || isAlreadyAdded) && <Check size={12} strokeWidth={3} />}
                   </div>
 
-                  {/* Avatar com iniciais */}
                   <div className="w-9 h-9 rounded-full bg-neutral-200 text-neutral-700 font-semibold text-xs flex items-center justify-center shrink-0">
                     {contact.name.slice(0, 2).toUpperCase()}
                   </div>
 
-                  {/* Detalhes do contato */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <b className="text-sm font-semibold text-neutral-900 truncate">
@@ -274,8 +263,12 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
                     </div>
                     <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
                       <span>{contact.phone}</span>
-                      <span>•</span>
-                      <span>{contact.recentActivity}</span>
+                      {contact.recentActivity && (
+                        <>
+                          <span>•</span>
+                          <span>{contact.recentActivity}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -301,4 +294,3 @@ export const SelectWhatsAppContactsModal: React.FC<SelectWhatsAppContactsModalPr
     </ModalWrapper>
   );
 };
-

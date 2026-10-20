@@ -58,8 +58,8 @@ interface AgentConfigContextType {
   isDirty: boolean;
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
-  activeModal: "qr" | "pairing" | "calendar" | "json" | "wizard" | null;
-  setActiveModal: (modal: "qr" | "pairing" | "calendar" | "json" | "wizard" | null) => void;
+  activeModal: "qr" | "calendar" | "json" | "wizard" | null;
+  setActiveModal: (modal: "qr" | "calendar" | "json" | "wizard" | null) => void;
   isDrawerOpen: boolean;
   setIsDrawerOpen: (open: boolean) => void;
   discardNonce: number;
@@ -103,7 +103,7 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const [savedConfig, setSavedConfig] = useState<AgentConfig>(() => config);
   const [activeTab, setActiveTab] = useState<TabType>("connections");
-  const [activeModal, setActiveModal] = useState<"qr" | "pairing" | "calendar" | "json" | "wizard" | null>(null);
+  const [activeModal, setActiveModal] = useState<"qr" | "calendar" | "json" | "wizard" | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [discardNonce, setDiscardNonce] = useState(0);
   const [confirmModal, setConfirmModal] = useState<ConfirmOptions | null>(null);
@@ -588,8 +588,8 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const connectWhatsApp = () => {
     patchConfig({
       whatsapp: true,
-      whatsappInstance: "nexusagent-main",
-      whatsappPhone: config.whatsappPhone || "+55 11 99999-9999",
+      whatsappInstance: config.whatsappInstance || "Instância Conectada",
+      whatsappPhone: config.whatsappPhone || "",
     });
     setActiveModal(null);
     toast.success("WhatsApp conectado com sucesso!", {

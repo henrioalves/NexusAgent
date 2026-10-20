@@ -634,8 +634,14 @@ export const KnowledgeBaseTab: React.FC = () => {
 
           <div className="flex flex-col mt-3">
             {config.files.length === 0 ? (
-              <div className="py-4 text-center text-xs text-muted">
-                Nenhum documento carregado.
+              <div className="py-6 px-4 text-center flex flex-col items-center justify-center gap-1 text-muted border border-dashed border-neutral-200/80 rounded-xl">
+                <FileText size={20} className="text-neutral-300 mb-0.5" />
+                <span className="text-xs font-medium text-neutral-600">
+                  Nenhum documento treinado
+                </span>
+                <span className="text-[11px] text-neutral-400">
+                  Arraste ou selecione arquivos acima para anexar à memória da IA.
+                </span>
               </div>
             ) : (
               config.files.map((file) => (

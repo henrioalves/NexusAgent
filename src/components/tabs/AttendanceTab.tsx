@@ -418,8 +418,18 @@ export const AttendanceTab: React.FC = () => {
 
           <div className="flex flex-col border border-neutral-200/80 rounded-xl overflow-hidden divide-y divide-neutral-100 bg-white mt-2.5">
             {filteredRecentContacts.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted">
-                Nenhum contato recente registrado no período.
+              <div className="py-8 px-4 text-center flex flex-col items-center justify-center gap-1.5 text-muted">
+                <Clock size={20} className="text-neutral-300 mb-1" />
+                <span className="text-xs font-medium text-neutral-600">
+                  {searchTerm
+                    ? `Nenhum contato encontrado com "${searchTerm}"`
+                    : recentFilter === "24h"
+                    ? "Nenhum contato recente encontrado nas últimas 24h"
+                    : "Nenhum contato recente registrado"}
+                </span>
+                <span className="text-[11px] text-neutral-400">
+                  As novas conversas recebidas pelo WhatsApp aparecerão automaticamente aqui.
+                </span>
               </div>
             ) : (
               filteredRecentContacts.map((contact) => (
