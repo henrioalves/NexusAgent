@@ -73,7 +73,7 @@ interface AgentConfigContextType {
   resetToDefaults: () => void;
   connectWhatsApp: () => void;
   disconnectWhatsApp: () => void;
-  connectCalendar: () => void;
+  connectCalendar: (calendarName?: string | unknown) => Promise<void> | void;
   disconnectCalendar: () => void;
   confirmModal: ConfirmOptions | null;
   requestConfirm: (options: ConfirmOptions) => void;
@@ -285,17 +285,28 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const hydrated = safeHydrateConfig(data.config);
           initialConfigLoadedRef.current = currentUserId;
 
+          let resolvedConfig = hydrated;
+
           // Se já houver alterações locais não salvas, não sobrescreve silenciosamente em background
           setConfig((prev) => {
             const hasLocalChanges = JSON.stringify(prev) !== JSON.stringify(savedConfig);
             if (hasLocalChanges && silent) {
               return prev;
             }
+            // Se localmente temos calendar: true (ex: acabou de voltar do OAuth), preserva a conexão
+            if (prev.calendar && !hydrated.calendar) {
+              resolvedConfig = {
+                ...hydrated,
+                calendar: true,
+                calendarName: prev.calendarName || hydrated.calendarName || "Agenda principal",
+              };
+              return resolvedConfig;
+            }
             return hydrated;
           });
 
-          setSavedConfig(hydrated);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(hydrated));
+          setSavedConfig(resolvedConfig);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(resolvedConfig));
         } else {
           // Primeira inicialização do tenant: cria registro inicial no banco
           setConfig(initialConfig);
@@ -612,26 +623,107 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
-  const connectCalendar = () => {
-    patchConfig({ calendar: true });
+  const connectCalendar = async (customName?: string | unknown) => {
+    const nameStr = typeof customName === "string" ? customName : undefined;
+    const nextCalendarName = nameStr || config.calendarName || "Agenda principal";
+    const updated: AgentConfig = {
+      ...config,
+      calendar: true,
+      calendarName: nextCalendarName,
+    };
+    setConfig(updated);
+    setSavedConfig(updated);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+    if (user) {
+      try {
+        await supabase.from("agent_configs").upsert(
+          {
+            user_id: user.id,
+            config: updated,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+      } catch (err) {
+        console.error("Erro ao sincronizar conexão do Google Agenda no Supabase:", err);
+      }
+    }
+
     setActiveModal(null);
-    toast.success("Google Calendar conectado!", {
-      description: "Permissões concedidas para consulta e agendamento de eventos.",
+    toast.success("Google Agenda conectada!", {
+      description: "Permissões concedidas e agenda sincronizada para agendamentos.",
     });
   };
 
   const disconnectCalendar = () => {
     requestConfirm({
-      title: "Desvincular Google Calendar?",
+      title: "Desvincular Google Agenda?",
       message: "O agente não poderá mais consultar disponibilidade ou criar novos agendamentos na sua agenda.",
       confirmLabel: "Desvincular",
       isDestructive: true,
-      onConfirm: () => {
-        patchConfig({ calendar: false });
-        toast.warning("Google Calendar desvinculado.");
+      onConfirm: async () => {
+        const updated: AgentConfig = {
+          ...config,
+          calendar: false,
+        };
+        setConfig(updated);
+        setSavedConfig(updated);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+        if (user) {
+          try {
+            await supabase.from("agent_configs").upsert(
+              {
+                user_id: user.id,
+                config: updated,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" }
+            );
+          } catch (err) {
+            console.error("Erro ao persistir desvinculação no Supabase:", err);
+          }
+        }
+
+        toast.warning("Google Agenda desvinculada.");
       },
     });
   };
+
+  // Monitora retorno de redirecionamento OAuth do Google Agenda
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleConnected =
+      urlParams.get("google_connected") === "true" ||
+      urlParams.get("calendar_connected") === "true" ||
+      urlParams.get("calendar") === "connected" ||
+      urlParams.get("oauth") === "calendar_success";
+    const googleError = urlParams.get("google_error") || urlParams.get("error");
+    const calendarEmail =
+      urlParams.get("calendar_email") ||
+      urlParams.get("calendar_name") ||
+      urlParams.get("email");
+
+    if (googleConnected) {
+      sessionStorage.removeItem("oauth_calendar_pending");
+      connectCalendar(calendarEmail || "Agenda principal");
+
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    } else if (googleError) {
+      sessionStorage.removeItem("oauth_calendar_pending");
+      toast.error("Falha na autenticação do Google Agenda", {
+        description:
+          decodeURIComponent(googleError) ||
+          "Acesso negado ou fluxo cancelado pelo usuário.",
+      });
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, [user]);
 
   const requestConfirm = (options: ConfirmOptions) => {
     setConfirmModal(options);

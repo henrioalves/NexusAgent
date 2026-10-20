@@ -189,10 +189,10 @@ export const OnboardingWizardModal: React.FC<OnboardingWizardModalProps> = ({
             {config.calendar ? (
               <span className="badge success text-xs py-1.5 px-3">
                 <Check size={12} className="inline mr-1" />
-                Google Calendar conectado
+                Google Agenda conectada
               </span>
             ) : (
-              <Button variant="primary" onClick={connectCalendar}>
+              <Button variant="primary" onClick={() => connectCalendar()}>
                 Conectar Google Agenda
               </Button>
             )}

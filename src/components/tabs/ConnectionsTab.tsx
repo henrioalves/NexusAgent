@@ -71,7 +71,7 @@ export const ConnectionsTab: React.FC = () => {
       <Card
         className="integration-card"
         title="Google Agenda"
-        subtitle="Google Calendar · Opcional para reservas"
+        subtitle="Google Agenda · Sincronização de horários e reservas"
         action={
           <div className="integration-icon">
             <Calendar size={20} />
@@ -83,7 +83,7 @@ export const ConnectionsTab: React.FC = () => {
             <div className="connected-profile">
               <div className="avatar subtle">GC</div>
               <div className="grow">
-                <b>{config.calendarName || "Google Agenda"}</b>
+                <b>{config.calendarName || "Agenda principal"}</b>
                 <span>Conta Google vinculada</span>
               </div>
               <Badge variant="success" dot>
@@ -96,6 +96,9 @@ export const ConnectionsTab: React.FC = () => {
                 onChange={(e) => patchConfig({ calendarName: e.target.value })}
               >
                 <option value="Agenda principal">Agenda principal</option>
+                {config.calendarName && config.calendarName !== "Agenda principal" && (
+                  <option value={config.calendarName}>{config.calendarName}</option>
+                )}
               </Select>
             </Field>
           </>
@@ -133,7 +136,7 @@ export const ConnectionsTab: React.FC = () => {
               icon={Calendar}
               onClick={() => setActiveModal("calendar")}
             >
-              Conectar Google Calendar
+              Conectar Google Agenda
             </Button>
           )}
         </div>
