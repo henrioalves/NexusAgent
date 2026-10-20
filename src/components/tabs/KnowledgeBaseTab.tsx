@@ -8,6 +8,7 @@ import { Input, Textarea } from "../ui/Input";
 import { Switch, Checkbox } from "../ui/Controls";
 import { profileMetaRecord } from "../../schemas/agentSchema";
 import { generateUUID } from "../../utils/uuid";
+import { maskCNPJ } from "../../utils/masks";
 import type { CatalogItem, FaqItem, RagFile } from "../../types/agent";
 
 export const KnowledgeBaseTab: React.FC = () => {
@@ -181,188 +182,251 @@ export const KnowledgeBaseTab: React.FC = () => {
       {/* CARD 1: FORMULÁRIO ESTRUTURADO ESPECÍFICO POR PERFIL (SEM DATA BLEEDING) */}
       <Card title={profileMeta.title} subtitle={profileMeta.subtitle}>
         {config.profile === "empresa" && (
-          <div className="form-grid three">
-            <Field label="Nome fantasia da empresa">
-              <Input
-                value={config.profileData.company.name}
-                onChange={(e) => patchProfileData("company", { name: e.target.value })}
-                placeholder="Ex: Clínica Aurora"
-              />
-            </Field>
+          <div className="flex flex-col gap-4">
+            <div className="form-grid three">
+              <Field label="Nome fantasia da empresa">
+                <Input
+                  value={config.profileData.company.name}
+                  onChange={(e) => patchProfileData("company", { name: e.target.value })}
+                  placeholder="Ex: Clínica Aurora"
+                />
+              </Field>
 
-            <Field label="Endereço físico de atendimento">
-              <Input
-                value={config.profileData.company.address}
-                disabled={config.profileData.company.online}
-                onChange={(e) => patchProfileData("company", { address: e.target.value })}
-                placeholder="Av. Paulista, 1000 — São Paulo, SP"
-              />
-            </Field>
+              <Field label="CNPJ da empresa">
+                <Input
+                  value={config.profileData.company.cnpj || ""}
+                  onChange={(e) => patchProfileData("company", { cnpj: maskCNPJ(e.target.value) })}
+                  placeholder="00.000.000/0000-00"
+                />
+              </Field>
 
-            <Field label="Link do Google Maps">
-              <Input
-                placeholder="https://maps.google.com/?q=..."
-                value={config.profileData.company.maps}
-                onChange={(e) => patchProfileData("company", { maps: e.target.value })}
-              />
-            </Field>
+              <Field label="Senha do Wi-Fi (se local físico)" hint="Para informar a visitantes quando perguntarem">
+                <Input
+                  value={config.profileData.company.wifiPassword || ""}
+                  disabled={config.profileData.company.online}
+                  onChange={(e) => patchProfileData("company", { wifiPassword: e.target.value })}
+                  placeholder="Ex: aurora@2026"
+                />
+              </Field>
 
-            <Field label="Resumo institucional do negócio">
-              <Textarea
-                value={config.profileData.company.summary}
-                onChange={(e) => patchProfileData("company", { summary: e.target.value })}
-                placeholder="Descreva em poucas linhas o propósito e diferencial da sua empresa..."
-              />
-            </Field>
+              <Field label="Endereço físico de atendimento">
+                <Input
+                  value={config.profileData.company.address}
+                  disabled={config.profileData.company.online}
+                  onChange={(e) => patchProfileData("company", { address: e.target.value })}
+                  placeholder="Av. Paulista, 1000 — São Paulo, SP"
+                />
+              </Field>
 
-            <div>
-              <SettingRow
-                title="Operação 100% online"
-                description="Desativa endereço físico caso você não atenda presencialmente."
-                control={
-                  <Switch
-                    checked={config.profileData.company.online}
-                    onChange={(online) => patchProfileData("company", { online })}
-                    ariaLabel="Operação online"
-                  />
-                }
-              />
-              <Field label="Instagram ou Website principal" className="mt-2">
+              <Field label="Link do Google Maps">
+                <Input
+                  placeholder="https://maps.google.com/?q=..."
+                  value={config.profileData.company.maps}
+                  onChange={(e) => patchProfileData("company", { maps: e.target.value })}
+                />
+              </Field>
+
+              <Field label="Instagram ou Website principal">
                 <Input
                   value={config.profileData.company.links}
                   onChange={(e) => patchProfileData("company", { links: e.target.value })}
                   placeholder="@suaempresa ou https://seusite.com.br"
                 />
               </Field>
-            </div>
 
-            <div>
-              <Field label="Formas de pagamento aceitas">
-                <div className="checks horizontal wrap">
-                  {["PIX", "Cartão", "Boleto", "Dinheiro"].map((payment) => (
-                    <Checkbox
-                      key={payment}
-                      label={payment}
-                      checked={config.profileData.company.payments.includes(payment)}
-                      onChange={(checked) => {
-                        const payments = config.profileData.company.payments;
-                        const next = checked
-                          ? [...payments, payment]
-                          : payments.filter((p) => p !== payment);
-                        patchProfileData("company", { payments: next });
-                      }}
-                    />
-                  ))}
-                </div>
-              </Field>
-              <Field label="Chave PIX para envio automático" className="mt-2">
-                <Input
-                  value={config.profileData.company.pix}
-                  onChange={(e) => patchProfileData("company", { pix: e.target.value })}
-                  placeholder="financeiro@empresa.com.br ou CNPJ"
+              <Field label="Resumo institucional do negócio">
+                <Textarea
+                  value={config.profileData.company.summary}
+                  onChange={(e) => patchProfileData("company", { summary: e.target.value })}
+                  placeholder="Descreva em poucas linhas o propósito e diferencial da sua empresa..."
                 />
               </Field>
+
+              <div>
+                <SettingRow
+                  title="Operação 100% online"
+                  description="Desativa endereço físico caso você não atenda presencialmente."
+                  control={
+                    <Switch
+                      checked={config.profileData.company.online}
+                      onChange={(online) => patchProfileData("company", { online })}
+                      ariaLabel="Operação online"
+                    />
+                  }
+                />
+              </div>
+
+              <div>
+                <Field label="Formas de pagamento aceitas">
+                  <div className="checks horizontal wrap">
+                    {["PIX", "Cartão", "Boleto", "Dinheiro"].map((payment) => (
+                      <Checkbox
+                        key={payment}
+                        label={payment}
+                        checked={config.profileData.company.payments.includes(payment)}
+                        onChange={(checked) => {
+                          const payments = config.profileData.company.payments;
+                          const next = checked
+                            ? [...payments, payment]
+                            : payments.filter((p) => p !== payment);
+                          patchProfileData("company", { payments: next });
+                        }}
+                      />
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Chave Pix Principal para envio automático" className="mt-2">
+                  <Input
+                    value={config.profileData.company.pix}
+                    onChange={(e) => patchProfileData("company", { pix: e.target.value })}
+                    placeholder="financeiro@empresa.com.br ou CNPJ"
+                  />
+                </Field>
+              </div>
             </div>
+
+            {/* Informações Adicionais / Regras da Casa */}
+            <Field
+              label="Informações Adicionais / Regras da Casa"
+              hint="Regras rápidas, particularidades e orientações sem necessidade de upload de PDF."
+            >
+              <Textarea
+                value={config.profileData.company.additionalInfo || ""}
+                onChange={(e) => patchProfileData("company", { additionalInfo: e.target.value })}
+                placeholder="Ex: Estacionamento conveniado no número 1020 com 50% de desconto. Não é permitida a entrada com animais de grande porte..."
+                rows={3}
+              />
+            </Field>
           </div>
         )}
 
         {config.profile === "profissional" && (
-          <div className="form-grid three">
-            <Field label="Nome profissional completo">
-              <Input
-                value={config.profileData.professional.name}
-                onChange={(e) => patchProfileData("professional", { name: e.target.value })}
-                placeholder="Ex: Dra. Camila Alencar"
-              />
-            </Field>
+          <div className="flex flex-col gap-4">
+            <div className="form-grid three">
+              <Field label="Nome profissional completo">
+                <Input
+                  value={config.profileData.professional.name}
+                  onChange={(e) => patchProfileData("professional", { name: e.target.value })}
+                  placeholder="Ex: Dra. Camila Alencar"
+                />
+              </Field>
 
-            <Field label="Registro profissional (CRM, OAB, CRP...)">
-              <Input
-                value={config.profileData.professional.registry}
-                onChange={(e) => patchProfileData("professional", { registry: e.target.value })}
-                placeholder="Ex: CRM/SP 123.456"
-              />
-            </Field>
+              <Field label="Registro profissional (CRM, OAB, CRP...)">
+                <Input
+                  value={config.profileData.professional.registry}
+                  onChange={(e) => patchProfileData("professional", { registry: e.target.value })}
+                  placeholder="Ex: CRM/SP 123.456"
+                />
+              </Field>
 
-            <Field label="Especialidade de atuação">
-              <Input
-                value={config.profileData.professional.specialty}
-                onChange={(e) => patchProfileData("professional", { specialty: e.target.value })}
-                placeholder="Ex: Psicologia Clínica ou Direito Tributário"
-              />
-            </Field>
+              <Field label="Especialidade de atuação">
+                <Input
+                  value={config.profileData.professional.specialty}
+                  onChange={(e) => patchProfileData("professional", { specialty: e.target.value })}
+                  placeholder="Ex: Psicologia Clínica ou Direito Tributário"
+                />
+              </Field>
 
-            <Field label="Endereço do consultório / escritório">
-              <Input
-                value={config.profileData.professional.address}
-                onChange={(e) => patchProfileData("professional", { address: e.target.value })}
-                placeholder="Rua Oscar Freire, 300 — Sala 42"
-              />
-            </Field>
+              <Field label="Endereço do consultório / escritório">
+                <Input
+                  value={config.profileData.professional.address}
+                  onChange={(e) => patchProfileData("professional", { address: e.target.value })}
+                  placeholder="Rua Oscar Freire, 300 — Sala 42"
+                />
+              </Field>
 
-            <Field label="Links profissionais (Linktree, LinkedIn, Site)">
-              <Input
-                value={config.profileData.professional.links}
-                onChange={(e) => patchProfileData("professional", { links: e.target.value })}
-                placeholder="https://meusite.com.br"
-              />
-            </Field>
+              <Field label="Links profissionais (Linktree, LinkedIn, Site)">
+                <Input
+                  value={config.profileData.professional.links}
+                  onChange={(e) => patchProfileData("professional", { links: e.target.value })}
+                  placeholder="https://meusite.com.br"
+                />
+              </Field>
 
-            <Field label="Formas de pagamento aceitas (separadas por vírgula)">
-              <Input
-                value={config.profileData.professional.payments.join(", ")}
-                onChange={(e) => {
-                  const arr = e.target.value
-                    .split(",")
-                    .map((item) => item.trim())
-                    .filter(Boolean);
-                  patchProfileData("professional", { payments: arr });
-                }}
-                placeholder="PIX, Cartão, Transferência"
+              <Field label="Formas de pagamento aceitas (separadas por vírgula)">
+                <Input
+                  value={config.profileData.professional.payments.join(", ")}
+                  onChange={(e) => {
+                    const arr = e.target.value
+                      .split(",")
+                      .map((item) => item.trim())
+                      .filter(Boolean);
+                    patchProfileData("professional", { payments: arr });
+                  }}
+                  placeholder="PIX, Cartão, Transferência"
+                />
+              </Field>
+            </div>
+
+            {/* Informações Adicionais / Regras da Casa */}
+            <Field
+              label="Informações Adicionais / Regras da Casa"
+              hint="Regras rápidas, particularidades e orientações sem necessidade de upload de PDF."
+            >
+              <Textarea
+                value={config.profileData.professional.additionalInfo || ""}
+                onChange={(e) => patchProfileData("professional", { additionalInfo: e.target.value })}
+                placeholder="Ex: Cancelamentos com menos de 24h de antecedência cobram taxa de remarcação. Chegar com 10 min de antecedência para preenchimento de ficha..."
+                rows={3}
               />
             </Field>
           </div>
         )}
 
         {config.profile === "pessoal" && (
-          <div className="form-grid three">
-            <Field label="Meu nome de apresentação">
-              <Input
-                value={config.profileData.personal.name}
-                onChange={(e) => patchProfileData("personal", { name: e.target.value })}
-                placeholder="Ex: Lucas Mendonça"
-              />
-            </Field>
+          <div className="flex flex-col gap-4">
+            <div className="form-grid three">
+              <Field label="Meu nome de apresentação">
+                <Input
+                  value={config.profileData.personal.name}
+                  onChange={(e) => patchProfileData("personal", { name: e.target.value })}
+                  placeholder="Ex: Lucas Mendonça"
+                />
+              </Field>
 
-            <Field label="Cidade / Localização base">
-              <Input
-                value={config.profileData.personal.city}
-                onChange={(e) => patchProfileData("personal", { city: e.target.value })}
-                placeholder="São Paulo, SP"
-              />
-            </Field>
+              <Field label="Cidade / Localização base">
+                <Input
+                  value={config.profileData.personal.city}
+                  onChange={(e) => patchProfileData("personal", { city: e.target.value })}
+                  placeholder="São Paulo, SP"
+                />
+              </Field>
 
-            <Field label="Links úteis (Agenda, Portfólio)">
-              <Input
-                value={config.profileData.personal.links}
-                onChange={(e) => patchProfileData("personal", { links: e.target.value })}
-                placeholder="linkedin.com/in/seunome"
-              />
-            </Field>
+              <Field label="Links úteis (Agenda, Portfólio)">
+                <Input
+                  value={config.profileData.personal.links}
+                  onChange={(e) => patchProfileData("personal", { links: e.target.value })}
+                  placeholder="linkedin.com/in/seunome"
+                />
+              </Field>
 
-            <Field label="Resumo / Bio pessoal">
+              <Field label="Resumo / Bio pessoal">
+                <Textarea
+                  value={config.profileData.personal.summary}
+                  onChange={(e) => patchProfileData("personal", { summary: e.target.value })}
+                  placeholder="Explique sua atuação, projetos atuais ou contexto para filtrar mensagens..."
+                />
+              </Field>
+
+              <Field label="Tópicos e assuntos prioritários">
+                <Textarea
+                  value={config.profileData.personal.topics}
+                  onChange={(e) => patchProfileData("personal", { topics: e.target.value })}
+                  placeholder="Reuniões, mentorias, palestras, convites para podcasts..."
+                />
+              </Field>
+            </div>
+
+            {/* Informações Adicionais / Regras da Casa */}
+            <Field
+              label="Informações Adicionais / Regras da Casa"
+              hint="Regras rápidas, particularidades e orientações sem necessidade de upload de PDF."
+            >
               <Textarea
-                value={config.profileData.personal.summary}
-                onChange={(e) => patchProfileData("personal", { summary: e.target.value })}
-                placeholder="Explique sua atuação, projetos atuais ou contexto para filtrar mensagens..."
-              />
-            </Field>
-
-            <Field label="Tópicos e assuntos prioritários">
-              <Textarea
-                value={config.profileData.personal.topics}
-                onChange={(e) => patchProfileData("personal", { topics: e.target.value })}
-                placeholder="Reuniões, mentorias, palestras, convites para podcasts..."
+                value={config.profileData.personal.additionalInfo || ""}
+                onChange={(e) => patchProfileData("personal", { additionalInfo: e.target.value })}
+                placeholder="Ex: Prefiro reuniões virtuais pelo Google Meet. Não atendo chamadas sem aviso prévio por WhatsApp..."
+                rows={3}
               />
             </Field>
           </div>

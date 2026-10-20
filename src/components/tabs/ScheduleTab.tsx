@@ -404,6 +404,9 @@ export const ScheduleTab: React.FC = () => {
               <option value="Atender e agendar, mas avisar que está fechado">
                 Atender e agendar, mas avisar que está fechado
               </option>
+              <option value="Atender apenas clientes VIP (Whitelist) e ignorar os demais">
+                Atender apenas clientes VIP (Whitelist) e ignorar os demais
+              </option>
               <option value="Enviar mensagem única de ausência">
                 Enviar mensagem única de ausência
               </option>

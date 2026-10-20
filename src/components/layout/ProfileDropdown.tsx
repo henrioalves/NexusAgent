@@ -20,33 +20,10 @@ import { useAgentConfig } from "../../context/AgentConfigContext";
 import { supabase } from "../../services/supabase";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { UserAvatar, getUserInitials } from "../ui/UserAvatar";
 import { AccountSettingsModal } from "../modals/AccountSettingsModal";
 
-/**
- * Extrai as duas primeiras iniciais do nome completo (ex: "João Silva" -> "JS", "Maria" -> "MA").
- * Caso não haja nome cadastrado, usa o início do e-mail.
- */
-export const getUserInitials = (fullName?: string | null, email?: string | null): string => {
-  if (fullName && fullName.trim().length > 0) {
-    const parts = fullName.trim().split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    if (parts.length === 1 && parts[0].length >= 2) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-    if (parts.length === 1) {
-      return parts[0].toUpperCase();
-    }
-  }
-
-  if (email && email.trim().length > 0) {
-    const userPart = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
-    return userPart.slice(0, 2).toUpperCase() || "NA";
-  }
-
-  return "NA";
-};
+export { getUserInitials };
 
 export const ProfileDropdown: React.FC = () => {
   const { user, userProfile, updateUserProfile, logout } = useAgentConfig();
@@ -111,7 +88,6 @@ export const ProfileDropdown: React.FC = () => {
     };
   }, [isOpen]);
 
-  const initials = getUserInitials(userProfile?.full_name, user?.email);
 
   const getAccountTypeLabel = () => {
     switch (userProfile?.account_type) {
@@ -315,23 +291,18 @@ export const ProfileDropdown: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-9 h-9 rounded-full bg-[#f2f2f7] text-[#1d1d1f] flex items-center justify-center font-bold text-xs tracking-wider cursor-pointer border border-[rgba(0,0,0,0.08)] shadow-sm hover:border-[rgba(0,0,0,0.2)] hover:bg-[#e5e5ea] transition-all overflow-hidden focus:outline-none select-none"
+        className="rounded-full cursor-pointer focus:outline-none transition-transform active:scale-95 flex items-center justify-center select-none"
         title={`Perfil: ${userProfile?.full_name || user?.email || "Minha Conta"}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        {userProfile?.avatar_url ? (
-          <img
-            src={userProfile.avatar_url}
-            alt={userProfile.full_name || "Avatar"}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLElement).style.display = "none";
-            }}
-          />
-        ) : (
-          <span>{initials}</span>
-        )}
+        <UserAvatar
+          avatarUrl={userProfile?.avatar_url}
+          name={userProfile?.full_name}
+          email={user?.email}
+          size="sm"
+          className="shadow-xs hover:border-[rgba(0,0,0,0.18)] hover:bg-[#e5e5ea]"
+        />
       </button>
 
       {/* DROPDOWN MENU */}
@@ -339,22 +310,17 @@ export const ProfileDropdown: React.FC = () => {
         <div className="absolute right-0 top-full mt-2.5 w-[330px] sm:w-[360px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[rgba(0,0,0,0.08)] p-5 z-50 animate-pop text-left">
           {/* CABEÇALHO DO PERFIL */}
           <div className="flex items-center gap-3.5 pb-4 border-b border-[rgba(0,0,0,0.06)]">
-            <div className="relative w-12 h-12 rounded-full bg-[#f2f2f7] text-[#1d1d1f] flex items-center justify-center font-bold text-sm tracking-wider flex-shrink-0 overflow-hidden border border-[rgba(0,0,0,0.08)] select-none">
-              {userProfile?.avatar_url ? (
-                <img
-                  src={userProfile.avatar_url}
-                  alt={userProfile.full_name || "Avatar"}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = "none";
-                  }}
-                />
-              ) : (
-                <span>{initials}</span>
-              )}
+            <div className="relative flex-shrink-0">
+              <UserAvatar
+                avatarUrl={userProfile?.avatar_url}
+                name={userProfile?.full_name}
+                email={user?.email}
+                size="lg"
+                className="shadow-xs"
+              />
 
               {uploadingPhoto && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
+                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center text-white">
                   <Loader2 size={16} className="animate-spin" />
                 </div>
               )}

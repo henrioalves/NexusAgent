@@ -1,26 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Sparkles, Shield, Bot, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Sparkles, Shield, Bot, MessageSquare, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentConfig } from "../../context/AgentConfigContext";
 import { Card, Field, SettingRow, Slider } from "../ui/LayoutCards";
 import { Button } from "../ui/Button";
-import { Input, Select, Textarea } from "../ui/Input";
+import { Input, Textarea } from "../ui/Input";
 import { Switch, Checkbox, SegmentedControl } from "../ui/Controls";
 import { generateUUID } from "../../utils/uuid";
 import { initialConfig } from "../../schemas/agentSchema";
-
-const promptTemplates: Record<string, string> = {
-  "Clínica / Consultório":
-    "Acolha cada paciente de forma atenciosa e empática. Entenda a especialidade e queixa antes de oferecer horários. Nunca dê diagnósticos nem prescreva medicamentos. Colete nome completo e confirme o horário com antecedência.",
-  "Loja / Comércio":
-    "Receba os clientes com energia e entusiasmo. Ajude a encontrar produtos através do catálogo e informe com precisão preços e formas de pagamento aceitas. Nunca prometa produtos esgotados sem confirmação da equipe.",
-  "Barbearia / Estética":
-    "Apresente os serviços e procedimentos disponíveis com clareza. Pergunte a preferência de profissional antes de sugerir horários na grade. Confirme tolerância de atraso e formas de pagamento aceitas.",
-  "Escritório / Advocacia":
-    "Realize uma triagem inicial discreta e profissional. Colete a área jurídica de interesse, urgência e dados de contato. Nunca emita pareceres jurídicos definitivos antes da consulta formal com o advogado.",
-  "Uso Pessoal":
-    "Atue como meu assistente executivo pessoal. Responda de forma direta, gentil e prestativa. Anote recados importantes, confirme datas para reuniões e filtre mensagens de baixa prioridade.",
-};
 
 export const IdentityTab: React.FC = () => {
   const { config, patchConfig, discardNonce, requestConfirm } = useAgentConfig();
@@ -41,7 +28,7 @@ export const IdentityTab: React.FC = () => {
     });
 
     setNewRule("");
-    toast.success("Regra proibida adicionada aos Guardrails.");
+    toast.success("Regra proibida adicionada com sucesso.");
   };
 
   const handleDeleteRule = (id: string, text: string) => {
@@ -59,18 +46,10 @@ export const IdentityTab: React.FC = () => {
     });
   };
 
-  const handleApplyTemplate = (templateName: string) => {
-    if (!templateName) return;
-    const templateContent = promptTemplates[templateName];
-    if (templateContent) {
-      patchConfig({ prompt: templateContent });
-      toast.success(`Template "${templateName}" carregado nas instruções.`);
-    }
-  };
-
   const toneOptions = [
     "Profissional",
     "Amigável",
+    "Empático / Acolhedor",
     "Direto",
     "Descontraído",
     "Consultivo / Vendedor",
@@ -83,6 +62,58 @@ export const IdentityTab: React.FC = () => {
     "Qualificação de Leads",
     "Recepção Pessoal",
   ];
+
+  // Recupera array de tons de voz ativos (com fallback)
+  const currentTones: string[] =
+    config.tones && config.tones.length > 0
+      ? config.tones
+      : config.tone
+      ? [config.tone]
+      : ["Amigável"];
+
+  const handleToggleTone = (tone: string) => {
+    let nextTones: string[];
+    if (currentTones.includes(tone)) {
+      if (currentTones.length === 1) {
+        toast.info("O agente precisa ter pelo menos um tom de voz ativo.");
+        return;
+      }
+      nextTones = currentTones.filter((t) => t !== tone);
+    } else {
+      nextTones = [...currentTones, tone];
+    }
+
+    patchConfig({
+      tones: nextTones,
+      tone: nextTones[0] || "Amigável",
+    });
+  };
+
+  // Recupera array de objetivos principais ativos (com fallback)
+  const currentGoals: string[] =
+    config.goals && config.goals.length > 0
+      ? config.goals
+      : config.goal
+      ? [config.goal]
+      : ["Agendamento"];
+
+  const handleToggleGoal = (goal: string) => {
+    let nextGoals: string[];
+    if (currentGoals.includes(goal)) {
+      if (currentGoals.length === 1) {
+        toast.info("O agente precisa ter pelo menos um objetivo selecionado.");
+        return;
+      }
+      nextGoals = currentGoals.filter((g) => g !== goal);
+    } else {
+      nextGoals = [...currentGoals, goal];
+    }
+
+    patchConfig({
+      goals: nextGoals,
+      goal: nextGoals[0] || "Agendamento",
+    });
+  };
 
   return (
     <div className="stack">
@@ -130,21 +161,27 @@ export const IdentityTab: React.FC = () => {
         {/* PERSONALIDADE E ESTILO */}
         <Card
           title="Personalidade e estilo"
-          subtitle="Ajuste o tom das mensagens para combinar com a sua marca."
+          subtitle="Ajuste o tom das mensagens para combinar perfeitamente com a sua marca."
           action={<Sparkles size={18} className="text-muted" />}
         >
-          <Field label="Tom de voz">
+          <Field
+            label="Tom de voz (Permite seleção múltipla)"
+            hint="Selecione um ou mais estilos para balancear as respostas do robô."
+          >
             <div className="pills">
-              {toneOptions.map((tone) => (
-                <button
-                  type="button"
-                  key={tone}
-                  className={config.tone === tone ? "active" : ""}
-                  onClick={() => patchConfig({ tone })}
-                >
-                  {tone}
-                </button>
-              ))}
+              {toneOptions.map((tone) => {
+                const isSelected = currentTones.includes(tone);
+                return (
+                  <button
+                    type="button"
+                    key={tone}
+                    className={isSelected ? "active font-medium" : "font-normal"}
+                    onClick={() => handleToggleTone(tone)}
+                  >
+                    {tone}
+                  </button>
+                );
+              })}
             </div>
           </Field>
 
@@ -173,29 +210,37 @@ export const IdentityTab: React.FC = () => {
       {/* OBJETIVO PRINCIPAL */}
       <Card
         title="Objetivo principal do agente"
-        subtitle="Oriente a IA para priorizar a conversão mais relevante para o seu negócio."
+        subtitle="Oriente a IA para priorizar a conversão mais relevante. Permite selecionar múltiplos objetivos."
       >
         <div className="goal-grid">
           {goalOptions.map((goal) => {
-            const isSelected = config.goal === goal;
+            const isSelected = currentGoals.includes(goal);
             return (
               <button
                 type="button"
                 key={goal}
-                className={isSelected ? "selected" : ""}
-                onClick={() => patchConfig({ goal })}
+                className={`choice-card ${isSelected ? "selected" : ""}`}
+                onClick={() => handleToggleGoal(goal)}
               >
-                <span className="radio">
-                  <i />
-                </span>
-                <b>{goal}</b>
+                <div className="flex items-center gap-2.5 w-full">
+                  <span
+                    className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                      isSelected
+                        ? "bg-black border-black text-white"
+                        : "border-neutral-300 bg-white"
+                    }`}
+                  >
+                    {isSelected && <Check size={11} strokeWidth={3} />}
+                  </span>
+                  <b className="text-xs">{goal}</b>
+                </div>
               </button>
             );
           })}
         </div>
       </Card>
 
-      {/* 2 COLUNAS: HUMANIZAÇÃO & GUARDRAILS */}
+      {/* 2 COLUNAS: HUMANIZAÇÃO & REGRAS PROIBIDAS */}
       <div className="two-col">
         {/* HUMANIZAÇÃO NO WHATSAPP */}
         <Card
@@ -270,9 +315,9 @@ export const IdentityTab: React.FC = () => {
           </div>
         </Card>
 
-        {/* GUARDRAILS (RESTRIÇÕES ABSOLUTAS) */}
+        {/* REGRAS PROIBIDAS */}
         <Card
-          title="Guardrails (Regras Proibidas)"
+          title="Regras Proibidas"
           subtitle="Restrições invioláveis que a IA nunca pode quebrar em nenhuma circunstância."
           action={<Shield size={18} className="text-muted" />}
         >
@@ -326,29 +371,10 @@ export const IdentityTab: React.FC = () => {
         </Card>
       </div>
 
-      {/* PROMPT LIVRE E TEMPLATES */}
+      {/* INSTRUÇÕES LIVRES */}
       <Card
-        title="Instruções Livres (System Prompt)"
+        title="Instruções Livres"
         subtitle="Escreva regras específicas, roteiro de atendimento, tom institucional e particularidades do seu nicho."
-        action={
-          <Select
-            className="template-select"
-            defaultValue=""
-            onChange={(e) => {
-              handleApplyTemplate(e.target.value);
-              e.target.value = "";
-            }}
-          >
-            <option value="" disabled>
-              Carregar template pronto...
-            </option>
-            {Object.keys(promptTemplates).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </Select>
-        }
       >
         <Textarea
           className="prompt"
@@ -360,4 +386,3 @@ export const IdentityTab: React.FC = () => {
     </div>
   );
 };
-

@@ -48,7 +48,14 @@ export const initialConfig: AgentConfig = {
     { id: "rafael", name: "Rafael Martins", phone: "+55 21 99211-8830", active: false },
     { id: "bianca", name: "Bianca Lima", phone: "+55 11 97750-4421", active: true },
   ],
-  overflow: { human: true, unknown: true, angry: true, phone: "" },
+  overflow: {
+    human: true,
+    unknown: true,
+    angry: true,
+    cancellationRefund: true,
+    phone: "",
+    phones: [],
+  },
   timezone: "America/Sao_Paulo (GMT-03:00)",
   days: weekDays.map((name, index) => ({
     name,
@@ -74,7 +81,9 @@ export const initialConfig: AgentConfig = {
   introduce: true,
   discloseAI: false,
   goal: "Agendamento",
+  goals: ["Agendamento"],
   tone: "Amigável",
+  tones: ["Amigável"],
   responseLength: 35,
   emojis: "Moderado",
   debounce: 10,
@@ -93,13 +102,16 @@ export const initialConfig: AgentConfig = {
   profileData: {
     company: {
       name: "Clínica Aurora",
+      cnpj: "12.345.678/0001-90",
       summary: "Cuidado integrado com atendimento humano e acolhedor.",
       address: "Av. Paulista, 1000 — São Paulo, SP",
       online: false,
+      wifiPassword: "",
       maps: "https://maps.google.com/?q=Av.+Paulista+1000",
       payments: ["PIX", "Cartão"],
       pix: "financeiro@clinicaaurora.com.br",
       links: "@clinicaaurora",
+      additionalInfo: "",
     },
     professional: {
       name: "Dra. Camila Alencar",
@@ -108,6 +120,7 @@ export const initialConfig: AgentConfig = {
       address: "Rua Oscar Freire, 300 — São Paulo, SP",
       links: "https://dracamila.com.br",
       payments: ["PIX", "Cartão de Crédito", "Transferência"],
+      additionalInfo: "",
     },
     personal: {
       name: "Lucas Mendonça",
@@ -115,6 +128,7 @@ export const initialConfig: AgentConfig = {
       city: "São Paulo, SP",
       topics: "Reuniões, palestras, mentorias e projetos de IA.",
       links: "linkedin.com/in/lucas-mendonca",
+      additionalInfo: "",
     },
   },
   catalog: [
@@ -287,9 +301,11 @@ export const agentConfigSchema = z.object({
       human: z.boolean().default(true),
       unknown: z.boolean().default(true),
       angry: z.boolean().default(true),
+      cancellationRefund: z.boolean().default(true),
       phone: z.string().default(""),
+      phones: z.array(z.string()).default([]),
     })
-    .default({ human: true, unknown: true, angry: true, phone: "" }),
+    .default({ human: true, unknown: true, angry: true, cancellationRefund: true, phone: "", phones: [] }),
   timezone: z.string().default("America/Sao_Paulo (GMT-03:00)"),
   days: z
     .array(
@@ -327,7 +343,9 @@ export const agentConfigSchema = z.object({
   introduce: z.boolean().default(true),
   discloseAI: z.boolean().default(false),
   goal: z.string().default("Agendamento"),
+  goals: z.array(z.string()).default(["Agendamento"]),
   tone: z.string().default("Amigável"),
+  tones: z.array(z.string()).default(["Amigável"]),
   responseLength: z.number().min(0).max(100).default(35),
   emojis: z.string().default("Moderado"),
   debounce: z.number().min(0).max(60).default(10),
@@ -349,13 +367,16 @@ export const agentConfigSchema = z.object({
     .object({
       company: z.object({
         name: z.string().default("Clínica Aurora"),
+        cnpj: z.string().default(""),
         summary: z.string().default(""),
         address: z.string().default(""),
         online: z.boolean().default(false),
+        wifiPassword: z.string().default(""),
         maps: z.string().default(""),
         payments: z.array(z.string()).default(["PIX", "Cartão"]),
         pix: z.string().default(""),
         links: z.string().default(""),
+        additionalInfo: z.string().default(""),
       }),
       professional: z.object({
         name: z.string().default("Dra. Camila Alencar"),
@@ -364,6 +385,7 @@ export const agentConfigSchema = z.object({
         address: z.string().default(""),
         links: z.string().default(""),
         payments: z.array(z.string()).default(["PIX", "Cartão de Crédito"]),
+        additionalInfo: z.string().default(""),
       }),
       personal: z.object({
         name: z.string().default("Lucas Mendonça"),
@@ -371,6 +393,7 @@ export const agentConfigSchema = z.object({
         city: z.string().default(""),
         topics: z.string().default(""),
         links: z.string().default(""),
+        additionalInfo: z.string().default(""),
       }),
     })
     .default(initialConfig.profileData),
@@ -568,6 +591,25 @@ export function safeHydrateConfig(raw: unknown): AgentConfig {
       ...initialConfig.filesByProfile,
       [activeProfile]: Array.isArray(obj.files) ? obj.files : initialConfig.filesByProfile[activeProfile],
     };
+  }
+
+  // Compatibilidade com múltiplos objetivos e tons
+  if (!Array.isArray(obj.goals)) {
+    obj.goals = obj.goal ? [String(obj.goal)] : ["Agendamento"];
+  }
+  if (!Array.isArray(obj.tones)) {
+    obj.tones = obj.tone ? [String(obj.tone)] : ["Amigável"];
+  }
+
+  // Compatibilidade com overflow (transferência para humano)
+  if (obj.overflow && typeof obj.overflow === "object") {
+    const ov = obj.overflow as Record<string, unknown>;
+    if (typeof ov.cancellationRefund !== "boolean") {
+      ov.cancellationRefund = true;
+    }
+    if (!Array.isArray(ov.phones)) {
+      ov.phones = ov.phone ? [String(ov.phone)] : [];
+    }
   }
 
   // Executa o parse do Zod com fallback seguro

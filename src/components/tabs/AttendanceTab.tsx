@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Trash2, Edit2, Search, Check, X, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, Edit2, Search, Check, X, ShieldAlert, Users, PhoneCall, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentConfig } from "../../context/AgentConfigContext";
 import { Card, Field, SettingRow, Badge } from "../ui/LayoutCards";
@@ -7,8 +7,8 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Switch, Checkbox } from "../ui/Controls";
 import { maskPhone } from "../../utils/masks";
-import { generateUUID } from "../../utils/uuid";
 import type { ContactException } from "../../types/agent";
+import { SelectWhatsAppContactsModal } from "./SelectWhatsAppContactsModal";
 
 export const AttendanceTab: React.FC = () => {
   const {
@@ -18,48 +18,93 @@ export const AttendanceTab: React.FC = () => {
     requestConfirm,
   } = useAgentConfig();
 
-  // Estados locais para novo contato
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
+  // Modal de seleção visual de contatos do WhatsApp
+  const [isSelectContactsModalOpen, setIsSelectContactsModalOpen] = useState(false);
 
-  // Estado para contato em edição
+  // Estado para contato em edição (exceções)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
 
-  // Busca em contatos recentes
+  // Busca e filtro de contatos recentes
   const [searchTerm, setSearchTerm] = useState("");
+  const [recentFilter, setRecentFilter] = useState<"24h" | "all">("24h");
+
+  // Estado para input de tags de telefones de alerta
+  const [newAlertPhone, setNewAlertPhone] = useState("");
 
   // Limpa rascunhos quando o usuário clica em "Descartar"
   useEffect(() => {
-    setNewName("");
-    setNewPhone("");
     setEditingId(null);
+    setNewAlertPhone("");
   }, [discardNonce]);
 
-  const handleAddException = () => {
-    if (!newName.trim()) {
-      toast.error("Preencha o nome do contato.");
-      return;
+  // Lista atual de telefones de alerta (com fallback compatível)
+  const alertPhones: string[] = useMemo(() => {
+    if (config.overflow.phones && config.overflow.phones.length > 0) {
+      return config.overflow.phones;
     }
-    if (!newPhone.trim()) {
-      toast.error("Preencha o telefone do contato.");
+    return config.overflow.phone ? [config.overflow.phone] : [];
+  }, [config.overflow.phones, config.overflow.phone]);
+
+  const handleAddAlertPhone = () => {
+    const raw = newAlertPhone.trim();
+    if (!raw) return;
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length < 10) {
+      toast.error("Informe um número de WhatsApp válido com DDD.");
       return;
     }
 
-    const newContact: ContactException = {
-      id: generateUUID(),
-      name: newName.trim(),
-      phone: newPhone.trim(),
-    };
+    if (alertPhones.includes(raw)) {
+      toast.warning("Este número já está na lista de alertas.");
+      return;
+    }
+
+    const nextPhones = [...alertPhones, raw];
+    patchConfig({
+      overflow: {
+        ...config.overflow,
+        phones: nextPhones,
+        phone: nextPhones[0] || "",
+      },
+    });
+    setNewAlertPhone("");
+    toast.success("Número adicionado à lista de alertas.");
+  };
+
+  const handleRemoveAlertPhone = (phoneToRemove: string) => {
+    const nextPhones = alertPhones.filter((p) => p !== phoneToRemove);
+    patchConfig({
+      overflow: {
+        ...config.overflow,
+        phones: nextPhones,
+        phone: nextPhones[0] || "",
+      },
+    });
+    toast.info("Número removido dos alertas.");
+  };
+
+  // Callback ao adicionar múltiplos contatos selecionados no Modal
+  const handleAddContactsFromModal = (newContacts: ContactException[]) => {
+    const existingPhones = new Set(
+      config.exceptions.map((ex) => ex.phone.replace(/\D/g, ""))
+    );
+    const uniqueToAdd = newContacts.filter(
+      (c) => !existingPhones.has(c.phone.replace(/\D/g, ""))
+    );
+
+    if (uniqueToAdd.length === 0) {
+      toast.info("Os contatos selecionados já estavam na lista.");
+      return;
+    }
 
     patchConfig({
-      exceptions: [...config.exceptions, newContact],
+      exceptions: [...config.exceptions, ...uniqueToAdd],
     });
-
-    setNewName("");
-    setNewPhone("");
-    toast.success(`Contato ${newContact.name} adicionado à lista.`);
+    toast.success(
+      `${uniqueToAdd.length} contato(s) adicionado(s) com sucesso à lista!`
+    );
   };
 
   const handleStartEdit = (contact: ContactException) => {
@@ -99,14 +144,36 @@ export const AttendanceTab: React.FC = () => {
     });
   };
 
-  // Filtro de contatos recentes
+  // Filtro de contatos recentes com suporte a busca e "Últimas 24h"
   const filteredRecentContacts = useMemo(() => {
-    if (!searchTerm.trim()) return config.recentContacts;
+    let list = config.recentContacts;
+
+    // Em uma aplicação real, a flag de 24h seria baseada no timestamp do contato.
+    // Aqui garantimos visualmente a experiência mantendo os contatos mais recentes.
+    if (recentFilter === "24h") {
+      // Simulação: exibe os contatos das últimas 24 horas (primeiros ou ativos)
+      list = config.recentContacts.slice(0, 5);
+    }
+
+    if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase();
-    return config.recentContacts.filter(
+    return list.filter(
       (c) => c.name.toLowerCase().includes(term) || c.phone.includes(term)
     );
-  }, [config.recentContacts, searchTerm]);
+  }, [config.recentContacts, searchTerm, recentFilter]);
+
+  const handleToggleContactIA = (id: string, active: boolean, name: string) => {
+    patchConfig({
+      recentContacts: config.recentContacts.map((item) =>
+        item.id === id ? { ...item, active } : item
+      ),
+    });
+    toast.info(
+      active
+        ? `IA reativada para ${name}`
+        : `IA pausada para ${name}. Responda manualmente pelo WhatsApp.`
+    );
+  };
 
   return (
     <div className="stack">
@@ -170,46 +237,46 @@ export const AttendanceTab: React.FC = () => {
           })}
         </div>
 
-        {/* LISTA DE EXCEÇÕES (BLACKLIST / WHITELIST) */}
+        {/* LISTA DE EXCEÇÕES (BLACKLIST / WHITELIST) COM SELEÇÃO VISUAL */}
         {config.contactMode !== "all" && (
           <div className="list-editor">
-            <div className="mb-3 text-xs font-semibold text-gray-700 flex items-center justify-between">
-              <span>
-                {config.contactMode === "blacklist"
-                  ? "Lista de Contatos Bloqueados (Blacklist)"
-                  : "Lista de Contatos Permitidos (Whitelist)"}
-              </span>
-              <span className="text-muted font-normal">
-                {config.exceptions.length} contato(s) cadastrado(s)
-              </span>
-            </div>
+            <div className="mb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-xs font-semibold text-neutral-800 m-0">
+                  {config.contactMode === "blacklist"
+                    ? "Lista de Contatos Bloqueados (Blacklist)"
+                    : "Lista de Contatos Permitidos (Whitelist)"}
+                </h3>
+                <span className="text-[11px] text-muted">
+                  {config.exceptions.length} contato(s) cadastrado(s)
+                </span>
+              </div>
 
-            {/* Formulário de Adicionar Contato */}
-            <div className="inline-form">
-              <Input
-                placeholder="Nome do contato"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
-              <Input
-                placeholder="+55 (00) 00000-0000"
-                value={newPhone}
-                onChange={(e) => setNewPhone(maskPhone(e.target.value))}
-              />
-              <Button variant="primary" icon={Plus} onClick={handleAddException}>
-                Adicionar
+              {/* Botão de seleção visual simulando WhatsApp */}
+              <Button
+                variant="primary"
+                icon={Users}
+                onClick={() => setIsSelectContactsModalOpen(true)}
+                className="text-xs h-9 px-3.5 shadow-sm"
+              >
+                Selecionar Contatos do WhatsApp
               </Button>
             </div>
 
             {/* Lista com Edição e Exclusão */}
-            <div className="flex flex-col">
+            <div className="flex flex-col border border-neutral-200/80 rounded-xl overflow-hidden divide-y divide-neutral-100 bg-white">
               {config.exceptions.length === 0 ? (
-                <div className="p-4 text-center text-xs text-muted border border-dashed rounded-xl mt-2">
-                  Nenhum contato na lista de exceções. Adicione contatos no formulário acima.
+                <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-muted">
+                    <Users size={18} />
+                  </div>
+                  <p className="text-xs text-muted max-w-sm m-0">
+                    Nenhum contato na lista de exceções. Clique no botão acima para selecionar contatos sincronizados do WhatsApp.
+                  </p>
                 </div>
               ) : (
                 config.exceptions.map((item) => (
-                  <div className="mini-row" key={item.id}>
+                  <div className="mini-row px-3 py-2.5" key={item.id}>
                     {editingId === item.id ? (
                       <div className="flex items-center gap-2 w-full">
                         <Input
@@ -239,7 +306,7 @@ export const AttendanceTab: React.FC = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="avatar small">
+                        <div className="avatar small font-semibold">
                           {item.name.slice(0, 2).toUpperCase() || "CT"}
                         </div>
                         <div className="grow">
@@ -273,7 +340,7 @@ export const AttendanceTab: React.FC = () => {
         )}
       </Card>
 
-      {/* GRID 2 COLUNAS: PAUSA HUMANA & TRANSBORDO */}
+      {/* GRID 2 COLUNAS: PAUSA HUMANA & TRANSFERÊNCIA PARA HUMANO */}
       <div className="two-col asym">
         {/* PAUSA HUMANA */}
         <Card
@@ -281,13 +348,13 @@ export const AttendanceTab: React.FC = () => {
           subtitle="Evite mensagens duplicadas ou desconexas quando uma pessoa da equipe assumir a conversa."
         >
           <SettingRow
-            title="Pausar IA ao responder pelo celular"
-            description="Se alguém responder manualmente no WhatsApp, o agente silencia temporariamente."
+            title="Pausar IA por resposta humana"
+            description="Se alguém responder manualmente no WhatsApp, o agente silencia temporariamente para não atropelar a conversa."
             control={
               <Switch
                 checked={config.pauseOnManual}
                 onChange={(v) => patchConfig({ pauseOnManual: v })}
-                ariaLabel="Pausar IA ao responder manualmente"
+                ariaLabel="Pausar IA por resposta humana"
               />
             }
           />
@@ -308,12 +375,39 @@ export const AttendanceTab: React.FC = () => {
             />
           </Field>
 
-          {/* CONTATOS RECENTES COM BUSCA FUNCIONAL */}
+          {/* CONTATOS RECENTES COM FILTRO DE 24H E AÇÕES RÁPIDAS */}
           <div className="subsection-title">
-            <b>Contatos recentes</b>
-            <div className="relative w-48">
+            <div className="flex items-center gap-2">
+              <b>Contatos recentes</b>
+              <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setRecentFilter("24h")}
+                  className={`px-2 py-0.5 rounded-md font-medium transition-all ${
+                    recentFilter === "24h"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900"
+                  }`}
+                >
+                  Últimas 24h
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecentFilter("all")}
+                  className={`px-2 py-0.5 rounded-md font-medium transition-all ${
+                    recentFilter === "all"
+                      ? "bg-white text-black shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900"
+                  }`}
+                >
+                  Todos
+                </button>
+              </div>
+            </div>
+
+            <div className="relative w-44">
               <Input
-                placeholder="Buscar por nome ou DDD..."
+                placeholder="Buscar contato..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-8 text-xs pl-7"
@@ -322,51 +416,62 @@ export const AttendanceTab: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col border border-neutral-200/80 rounded-xl overflow-hidden divide-y divide-neutral-100 bg-white mt-2.5">
             {filteredRecentContacts.length === 0 ? (
-              <div className="py-4 text-center text-xs text-muted">
-                Nenhum contato encontrado com o termo "{searchTerm}".
+              <div className="py-6 text-center text-xs text-muted">
+                Nenhum contato recente registrado no período.
               </div>
             ) : (
               filteredRecentContacts.map((contact) => (
-                <div className="mini-row" key={contact.id}>
-                  <div className="avatar small">
+                <div className="mini-row px-3 py-2.5" key={contact.id}>
+                  <div className="avatar small font-medium">
                     {contact.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="grow">
-                    <b>{contact.name}</b>
+                    <div className="flex items-center gap-1.5">
+                      <b>{contact.name}</b>
+                      {recentFilter === "24h" && (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-neutral-400">
+                          <Clock size={10} /> recente
+                        </span>
+                      )}
+                    </div>
                     <span>{contact.phone}</span>
                   </div>
+                  
+                  {/* Status Badge */}
                   <Badge variant={contact.active ? "success" : "neutral"}>
-                    {contact.active ? "IA ativa" : "Pausado"}
+                    {contact.active ? "Ativo" : "Pausado"}
                   </Badge>
-                  <Switch
-                    checked={contact.active}
-                    green
-                    onChange={(active) => {
-                      patchConfig({
-                        recentContacts: config.recentContacts.map((item) =>
-                          item.id === contact.id ? { ...item, active } : item
-                        ),
-                      });
-                      toast.info(
-                        active
-                          ? `IA reativada para ${contact.name}`
-                          : `IA pausada para ${contact.name}`
-                      );
-                    }}
-                    ariaLabel={`Status de IA para ${contact.name}`}
-                  />
+
+                  {/* Botão rápido de Pausar / Retomar IA */}
+                  {contact.active ? (
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleToggleContactIA(contact.id, false, contact.name)}
+                      className="h-7 px-2.5 text-xs text-neutral-600 hover:text-black font-medium border border-neutral-200"
+                    >
+                      Pausar IA
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={() => handleToggleContactIA(contact.id, true, contact.name)}
+                      className="h-7 px-2.5 text-xs font-medium"
+                    >
+                      Retomar IA
+                    </Button>
+                  )}
                 </div>
               ))
             )}
           </div>
         </Card>
 
-        {/* TRANSBORDO HUMANO */}
+        {/* TRANSFERÊNCIA PARA HUMANO */}
         <Card
-          title="Transbordo humano"
-          subtitle="Defina os gatilhos em que o agente deve interromper o fluxo e acionar você."
+          title="Transferência para Humano"
+          subtitle="Defina os gatilhos em que o agente deve interromper o fluxo e acionar você ou sua equipe."
           action={<ShieldAlert size={18} className="text-muted" />}
         >
           <div className="checks">
@@ -397,25 +502,85 @@ export const AttendanceTab: React.FC = () => {
                 })
               }
             />
-          </div>
-
-          <Field
-            label="WhatsApp para receber alertas e chamados"
-            hint="Número que receberá a notificação com o resumo da conversa."
-          >
-            <Input
-              placeholder="+55 (00) 00000-0000"
-              value={config.overflow.phone}
-              onChange={(e) =>
+            <Checkbox
+              label="Intenção de Cancelamento ou Reembolso"
+              checked={config.overflow.cancellationRefund ?? true}
+              onChange={(v) =>
                 patchConfig({
-                  overflow: { ...config.overflow, phone: maskPhone(e.target.value) },
+                  overflow: { ...config.overflow, cancellationRefund: v },
                 })
               }
             />
+          </div>
+
+          {/* Campo de WhatsApp com suporte a MÚLTIPLOS números (Tag input) */}
+          <Field
+            label="WhatsApp para receber alertas e chamados (Múltiplos números)"
+            hint="Adicione os números da equipe que receberão a notificação e o link da conversa."
+            className="mt-3"
+          >
+            {/* Input para adicionar nova tag de telefone */}
+            <div className="flex items-center gap-2 mb-2">
+              <Input
+                placeholder="+55 (00) 00000-0000"
+                value={newAlertPhone}
+                onChange={(e) => setNewAlertPhone(maskPhone(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddAlertPhone();
+                  }
+                }}
+                className="h-9 text-xs"
+              />
+              <Button
+                variant="primary"
+                icon={Plus}
+                onClick={handleAddAlertPhone}
+                className="h-9 text-xs px-3"
+              >
+                Adicionar
+              </Button>
+            </div>
+
+            {/* Container visual de tags de telefones */}
+            <div className="flex flex-wrap gap-2 min-h-[38px] p-2 bg-neutral-50/80 border border-neutral-200/80 rounded-xl">
+              {alertPhones.length === 0 ? (
+                <span className="text-xs text-muted self-center px-1">
+                  Nenhum número cadastrado. Digite um WhatsApp e clique em Adicionar.
+                </span>
+              ) : (
+                alertPhones.map((phone) => (
+                  <span
+                    key={phone}
+                    className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium bg-white text-neutral-800 border border-neutral-200/90 shadow-2xs"
+                  >
+                    <PhoneCall size={12} className="text-neutral-500" />
+                    <span>{phone}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAlertPhone(phone)}
+                      className="w-4 h-4 rounded-full inline-flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-neutral-100 transition-colors"
+                      title="Remover número"
+                    >
+                      <X size={11} strokeWidth={2.5} />
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
           </Field>
         </Card>
       </div>
+
+      {/* Modal de seleção de contatos */}
+      <SelectWhatsAppContactsModal
+        isOpen={isSelectContactsModalOpen}
+        onClose={() => setIsSelectContactsModalOpen(false)}
+        contactMode={config.contactMode === "blacklist" ? "blacklist" : "whitelist"}
+        existingExceptions={config.exceptions}
+        onAddContacts={handleAddContactsFromModal}
+      />
     </div>
   );
 };
-

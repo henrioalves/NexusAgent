@@ -29,7 +29,9 @@ export interface OverflowConfig {
   human: boolean;
   unknown: boolean;
   angry: boolean;
+  cancellationRefund: boolean;
   phone: string;
+  phones: string[];
 }
 
 export interface DaySchedule {
@@ -76,13 +78,16 @@ export interface RagFile {
 
 export interface CompanyProfile {
   name: string;
+  cnpj: string;
   summary: string;
   address: string;
   online: boolean;
+  wifiPassword: string;
   maps: string;
   payments: string[];
   pix: string;
   links: string;
+  additionalInfo: string;
 }
 
 export interface ProfessionalProfile {
@@ -92,6 +97,7 @@ export interface ProfessionalProfile {
   address: string;
   links: string;
   payments: string[];
+  additionalInfo: string;
 }
 
 export interface PersonalProfile {
@@ -100,6 +106,7 @@ export interface PersonalProfile {
   city: string;
   topics: string;
   links: string;
+  additionalInfo: string;
 }
 
 export interface ProfileData {
@@ -142,7 +149,9 @@ export interface AgentConfig {
   introduce: boolean;
   discloseAI: boolean;
   goal: string;
+  goals: string[];
   tone: string;
+  tones: string[];
   responseLength: number;
   emojis: string;
   debounce: number;
