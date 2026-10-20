@@ -115,6 +115,25 @@ export const IdentityTab: React.FC = () => {
     });
   };
 
+  // Exclusividade mútua entre apresentar pelo nome e declarar assistente de IA
+  const handleToggleIntroduce = (active: boolean) => {
+    if (active) {
+      patchConfig({ introduce: true, discloseAI: false });
+    } else {
+      // Se tentar desativar a opção ativa, alterna automaticamente para a outra
+      patchConfig({ introduce: false, discloseAI: true });
+    }
+  };
+
+  const handleToggleDiscloseAI = (active: boolean) => {
+    if (active) {
+      patchConfig({ discloseAI: true, introduce: false });
+    } else {
+      // Se tentar desativar a opção ativa, alterna automaticamente para a outra
+      patchConfig({ discloseAI: false, introduce: true });
+    }
+  };
+
   return (
     <div className="stack">
       {/* 2 COLUNAS: IDENTIDADE & PERSONALIDADE */}
@@ -139,7 +158,7 @@ export const IdentityTab: React.FC = () => {
             control={
               <Switch
                 checked={config.introduce}
-                onChange={(v) => patchConfig({ introduce: v })}
+                onChange={handleToggleIntroduce}
                 ariaLabel="Apresentar-se pelo nome"
               />
             }
@@ -151,7 +170,7 @@ export const IdentityTab: React.FC = () => {
             control={
               <Switch
                 checked={config.discloseAI}
-                onChange={(v) => patchConfig({ discloseAI: v })}
+                onChange={handleToggleDiscloseAI}
                 ariaLabel="Informar que é IA"
               />
             }

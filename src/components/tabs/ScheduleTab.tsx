@@ -8,7 +8,7 @@ import { Input, Select, Textarea } from "../ui/Input";
 import { Switch, Checkbox, SegmentedControl } from "../ui/Controls";
 import { parseSafeDate, validateScheduleTimes } from "../../utils/masks";
 import { generateUUID } from "../../utils/uuid";
-import type { DaySchedule, Holiday } from "../../types/agent";
+import type { DaySchedule, Holiday, AfterHoursBehavior } from "../../types/agent";
 
 export const ScheduleTab: React.FC = () => {
   const { config, patchConfig, discardNonce, requestConfirm } = useAgentConfig();
@@ -398,14 +398,11 @@ export const ScheduleTab: React.FC = () => {
           >
             <Select
               value={config.afterHours}
-              onChange={(e) => patchConfig({ afterHours: e.target.value })}
+              onChange={(e) => patchConfig({ afterHours: e.target.value as AfterHoursBehavior })}
             >
               <option value="Atendimento IA 24/7 normal">Atendimento IA 24/7 normal (Recomendado)</option>
               <option value="Atender e agendar, mas avisar que está fechado">
                 Atender e agendar, mas avisar que está fechado
-              </option>
-              <option value="Atender apenas clientes VIP (Whitelist) e ignorar os demais">
-                Atender apenas clientes VIP (Whitelist) e ignorar os demais
               </option>
               <option value="Enviar mensagem única de ausência">
                 Enviar mensagem única de ausência
@@ -444,39 +441,97 @@ export const ScheduleTab: React.FC = () => {
         )}
 
         <div className="form-grid">
-          <Field label="Duração padrão de cada atendimento">
+          <Field
+            label="Duração padrão de cada atendimento"
+            hint="Tempo estimado reservado na sua grade para a reunião."
+          >
             <SegmentedControl
-              options={["30 min", "45 min", "1 hora", "Por serviço"]}
+              options={["30 min", "45 min", "1 hora", "Por serviço", "Personalizado"]}
               value={config.duration}
-              onChange={(v) => patchConfig({ duration: v })}
+              onChange={(v) => {
+                const mode =
+                  v === "Por serviço"
+                    ? "service"
+                    : v === "Personalizado"
+                    ? "custom"
+                    : "fixed";
+                patchConfig({ duration: v, durationMode: mode });
+              }}
             />
+            {config.duration === "Personalizado" && (
+              <div className="mt-2.5">
+                <Input
+                  type="number"
+                  min={1}
+                  value={config.customDuration || 30}
+                  suffix="minutos"
+                  className="pr-16 text-xs"
+                  placeholder="Ex: 20, 90..."
+                  onChange={(e) =>
+                    patchConfig({
+                      customDuration: Math.max(1, Number(e.target.value) || 1),
+                    })
+                  }
+                />
+              </div>
+            )}
           </Field>
 
-          <Field label="Intervalo entre reuniões (buffer)">
-            <Select
-              value={config.buffer}
-              onChange={(e) => patchConfig({ buffer: e.target.value })}
-            >
-              <option value="Nenhum">Nenhum</option>
-              <option value="10 min">10 min</option>
-              <option value="15 min">15 min</option>
-              <option value="30 min">30 min</option>
-            </Select>
-          </Field>
-
-          <Field label="Antecedência mínima para agendar">
+          <Field
+            label="Intervalo entre reuniões (buffer)"
+            hint="Tempo livre reservado após cada atendimento."
+          >
             <Input
               type="number"
               min={0}
-              value={config.minNotice}
-              suffix="horas"
+              value={config.buffer}
+              suffix="minutos"
+              className="pr-16"
+              placeholder="0"
               onChange={(e) =>
-                patchConfig({ minNotice: Math.max(0, Number(e.target.value) || 0) })
+                patchConfig({
+                  buffer: Math.max(0, Number(e.target.value) || 0),
+                })
               }
             />
           </Field>
 
-          <Field label="Janela máxima futura">
+          <Field
+            label="Antecedência mínima para agendar"
+            hint="Tempo mínimo exigido antes do horário da reserva."
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={0}
+                value={config.minAdvanceTime}
+                className="flex-1"
+                onChange={(e) => {
+                  const val = Math.max(0, Number(e.target.value) || 0);
+                  patchConfig({
+                    minAdvanceTime: val,
+                    minNotice: config.minAdvanceUnit === "days" ? val * 24 : val,
+                  });
+                }}
+              />
+              <Select
+                value={config.minAdvanceUnit}
+                onChange={(e) => {
+                  const unit = e.target.value as "hours" | "days";
+                  patchConfig({
+                    minAdvanceUnit: unit,
+                    minNotice: unit === "days" ? config.minAdvanceTime * 24 : config.minAdvanceTime,
+                  });
+                }}
+                className="w-28 shrink-0 text-xs font-medium"
+              >
+                <option value="hours">Horas</option>
+                <option value="days">Dias</option>
+              </Select>
+            </div>
+          </Field>
+
+          <Field label="Janela máxima futura" hint="Limite máximo no futuro em que vagas ficam visíveis.">
             <Input
               type="number"
               min={1}

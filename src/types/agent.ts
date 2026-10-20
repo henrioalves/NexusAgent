@@ -115,6 +115,15 @@ export interface ProfileData {
   personal: PersonalProfile;
 }
 
+export type AfterHoursBehavior =
+  | "Atendimento IA 24/7 normal"
+  | "Atender e agendar, mas avisar que está fechado"
+  | "Enviar mensagem única de ausência"
+  | "Ficar totalmente mudo";
+
+export type DurationMode = "fixed" | "service" | "custom";
+export type AdvanceUnit = "hours" | "days";
+
 export interface AgentConfig {
   version: number;
   profile: ProfileType;
@@ -137,11 +146,15 @@ export interface AgentConfig {
   autoHolidays: boolean;
   holidays: Holiday[];
   lunchBehavior: string;
-  afterHours: string;
+  afterHours: AfterHoursBehavior;
   awayMessage: string;
   duration: string;
-  buffer: string;
+  durationMode: DurationMode;
+  customDuration: number;
+  buffer: number;
   minNotice: number;
+  minAdvanceTime: number;
+  minAdvanceUnit: AdvanceUnit;
   maxFuture: number;
   bookingFields: string[];
   reschedule: boolean;

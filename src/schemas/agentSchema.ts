@@ -28,6 +28,13 @@ export const profileMetaRecord: Record<ProfileType, ProfileMeta> = {
   },
 };
 
+export const afterHoursOptions = [
+  "Atendimento IA 24/7 normal",
+  "Atender e agendar, mas avisar que está fechado",
+  "Enviar mensagem única de ausência",
+  "Ficar totalmente mudo",
+] as const;
+
 export const initialConfig: AgentConfig = {
   version: 2,
   profile: "empresa",
@@ -72,8 +79,12 @@ export const initialConfig: AgentConfig = {
   afterHours: "Atender e agendar, mas avisar que está fechado",
   awayMessage: "Olá! No momento estamos fora do horário de atendimento, mas sua mensagem foi registrada e retornaremos em breve.",
   duration: "30 min",
-  buffer: "10 min",
+  durationMode: "fixed",
+  customDuration: 30,
+  buffer: 10,
   minNotice: 2,
+  minAdvanceTime: 2,
+  minAdvanceUnit: "hours",
   maxFuture: 30,
   bookingFields: ["Nome completo", "Serviço / motivo"],
   reschedule: true,
@@ -331,11 +342,15 @@ export const agentConfigSchema = z.object({
     )
     .default([]),
   lunchBehavior: z.string().default("Atender e avisar quando a equipe retorna"),
-  afterHours: z.string().default("Atender e agendar, mas avisar que está fechado"),
+  afterHours: z.enum(afterHoursOptions).default("Atender e agendar, mas avisar que está fechado"),
   awayMessage: z.string().default(initialConfig.awayMessage),
   duration: z.string().default("30 min"),
-  buffer: z.string().default("10 min"),
+  durationMode: z.enum(["fixed", "service", "custom"]).default("fixed"),
+  customDuration: z.number().min(1).default(30),
+  buffer: z.number().min(0).default(10),
   minNotice: z.number().min(0).default(2),
+  minAdvanceTime: z.number().min(0).default(2),
+  minAdvanceUnit: z.enum(["hours", "days"]).default("hours"),
   maxFuture: z.number().min(1).default(30),
   bookingFields: z.array(z.string()).default(["Nome completo", "Serviço / motivo"]),
   reschedule: z.boolean().default(true),
@@ -609,6 +624,57 @@ export function safeHydrateConfig(raw: unknown): AgentConfig {
     }
     if (!Array.isArray(ov.phones)) {
       ov.phones = ov.phone ? [String(ov.phone)] : [];
+    }
+  }
+
+  // Sanitização de comportamento fora de hora caso venha com a opção VIP removida ou inválida
+  if (!afterHoursOptions.includes(obj.afterHours as any)) {
+    obj.afterHours = initialConfig.afterHours;
+  }
+
+  // Sanitização e conversão de buffer para número
+  if (typeof obj.buffer === "string") {
+    const digits = (obj.buffer as string).replace(/\D/g, "");
+    obj.buffer = digits ? Math.max(0, Number(digits)) : 0;
+  } else if (typeof obj.buffer !== "number" || isNaN(obj.buffer)) {
+    obj.buffer = 10;
+  }
+
+  // Sanitização de modo de duração e duração personalizada
+  if (obj.durationMode !== "fixed" && obj.durationMode !== "service" && obj.durationMode !== "custom") {
+    if (obj.duration === "Por serviço") {
+      obj.durationMode = "service";
+    } else if (obj.duration === "Personalizado") {
+      obj.durationMode = "custom";
+    } else {
+      obj.durationMode = "fixed";
+    }
+  }
+  if (typeof obj.customDuration !== "number" || isNaN(obj.customDuration) || obj.customDuration < 1) {
+    const digits = typeof obj.duration === "string" ? obj.duration.replace(/\D/g, "") : "";
+    obj.customDuration = digits ? Number(digits) : 30;
+  }
+
+  // Sanitização de antecedência mínima
+  if (typeof obj.minAdvanceTime !== "number" || isNaN(obj.minAdvanceTime) || obj.minAdvanceTime < 0) {
+    obj.minAdvanceTime = typeof obj.minNotice === "number" ? obj.minNotice : 2;
+  }
+  if (obj.minAdvanceUnit !== "hours" && obj.minAdvanceUnit !== "days") {
+    obj.minAdvanceUnit = "hours";
+  }
+  if (typeof obj.minNotice !== "number" || isNaN(obj.minNotice)) {
+    const advTime = Number(obj.minAdvanceTime) || 2;
+    obj.minNotice = obj.minAdvanceUnit === "days" ? advTime * 24 : advTime;
+  }
+
+  // Garantia de exclusividade mútua entre apresentar pelo nome e revelar IA
+  if (Boolean(obj.introduce) === Boolean(obj.discloseAI)) {
+    if (obj.discloseAI) {
+      obj.introduce = false;
+      obj.discloseAI = true;
+    } else {
+      obj.introduce = true;
+      obj.discloseAI = false;
     }
   }
 
