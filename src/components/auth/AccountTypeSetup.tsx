@@ -123,7 +123,7 @@ export const AccountTypeSetup: React.FC = () => {
             CONFIGURAÇÃO INICIAL OBRIGATÓRIA
           </span>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#1d1d1f] mb-3">
-            Qual é o seu perfil de atendimento?
+            Qual é o seu tipo de conta?
           </h1>
           <p className="text-sm sm:text-base text-[#86868b] leading-relaxed">
             Selecione o modelo que melhor descreve sua rotina. O NexusAgent personalizará o comportamento da IA, os campos do catálogo e a base de conhecimento de acordo com sua escolha.

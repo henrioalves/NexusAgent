@@ -7,16 +7,20 @@ import {
   Camera,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Shield,
   Upload,
   Trash2,
   Loader2,
+  Building2,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentConfig } from "../../context/AgentConfigContext";
 import { supabase } from "../../services/supabase";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { AccountSettingsModal } from "../modals/AccountSettingsModal";
 
 /**
  * Extrai as duas primeiras iniciais do nome completo (ex: "João Silva" -> "JS", "Maria" -> "MA").
@@ -59,9 +63,13 @@ export const ProfileDropdown: React.FC = () => {
 
   // Estados locais para Alteração de Senha
   const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+
+  // Estado para o Modal de Configurações Avançadas de Conta
+  const [showAccountSettingsModal, setShowAccountSettingsModal] = useState(false);
 
   // Sincroniza formulário sempre que o perfil atualizar ou o menu abrir
   useEffect(() => {
@@ -75,12 +83,20 @@ export const ProfileDropdown: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowPasswordChange(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowPasswordChange(false);
       }
     };
 
@@ -107,6 +123,19 @@ export const ProfileDropdown: React.FC = () => {
         return "Conta Pessoal";
       default:
         return "NexusAgent";
+    }
+  };
+
+  const getAccountTypeIcon = () => {
+    switch (userProfile?.account_type) {
+      case "company":
+        return <Building2 size={15} />;
+      case "professional":
+        return <UserCheck size={15} />;
+      case "personal":
+        return <User size={15} />;
+      default:
+        return <Building2 size={15} />;
     }
   };
 
@@ -215,8 +244,19 @@ export const ProfileDropdown: React.FC = () => {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const trimmedCurrent = currentPassword.trim();
+    if (!trimmedCurrent) {
+      toast.error("A senha atual é obrigatória para prosseguir.");
+      return;
+    }
+
     if (!newPassword || newPassword.length < 6) {
       toast.error("A nova senha deve possuir no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (newPassword === trimmedCurrent) {
+      toast.error("A nova senha deve ser diferente da senha atual.");
       return;
     }
 
@@ -227,6 +267,22 @@ export const ProfileDropdown: React.FC = () => {
 
     setSavingPassword(true);
     try {
+      // 1. Reautenticação segura: valida se a senha atual confere no Supabase Auth
+      if (user?.email) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: trimmedCurrent,
+        });
+
+        if (signInError) {
+          toast.error("Senha atual incorreta", {
+            description: "A senha atual informada não confere com os registros da sua conta.",
+          });
+          return;
+        }
+      }
+
+      // 2. Atualiza para a nova senha
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -239,6 +295,7 @@ export const ProfileDropdown: React.FC = () => {
       }
 
       toast.success("Senha alterada com sucesso!");
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setShowPasswordChange(false);
@@ -308,10 +365,37 @@ export const ProfileDropdown: React.FC = () => {
                 {userProfile?.full_name || "Usuário NexusAgent"}
               </h3>
               <p className="text-xs text-[#86868b] truncate">{user?.email}</p>
-              <span className="inline-block mt-1 text-[10px] font-semibold tracking-wide text-black bg-[#f5f5f7] px-2 py-0.5 rounded-full border border-[rgba(0,0,0,0.04)]">
-                {getAccountTypeLabel()}
-              </span>
             </div>
+          </div>
+
+          {/* SEÇÃO: TIPO DE CONTA (SOMENTE LEITURA COM LINK PARA ÁREA AVANÇADA DE CONFIGURAÇÕES DE CONTA) */}
+          <div className="mt-3.5 p-3 bg-[#fafafa] rounded-2xl border border-[rgba(0,0,0,0.04)] flex items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] grid place-items-center text-[#1d1d1f] shadow-xs flex-shrink-0">
+                {getAccountTypeIcon()}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868b] block leading-none mb-1">
+                  Tipo de Conta
+                </span>
+                <span className="text-xs font-bold text-[#1d1d1f] truncate block leading-tight">
+                  {getAccountTypeLabel()}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                setShowAccountSettingsModal(true);
+              }}
+              className="text-[11px] font-semibold text-[#1d1d1f] hover:text-black flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#f5f5f7] shadow-xs transition-colors flex-shrink-0 cursor-pointer"
+              title="Configurações avançadas de conta"
+            >
+              <span>Configurações</span>
+              <ChevronRight size={12} />
+            </button>
           </div>
 
           {/* INPUT OCULTO PARA UPLOAD DE FOTO */}
@@ -400,7 +484,14 @@ export const ProfileDropdown: React.FC = () => {
           <div className="mt-4 pt-3 border-t border-[rgba(0,0,0,0.06)]">
             <button
               type="button"
-              onClick={() => setShowPasswordChange(!showPasswordChange)}
+              onClick={() => {
+                if (showPasswordChange) {
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }
+                setShowPasswordChange(!showPasswordChange);
+              }}
               className="w-full flex items-center justify-between text-xs font-semibold text-[#1d1d1f] hover:text-black py-1.5 transition-colors"
             >
               <div className="flex items-center gap-2">
@@ -415,6 +506,19 @@ export const ProfileDropdown: React.FC = () => {
                 onSubmit={handleChangePassword}
                 className="mt-3 flex flex-col gap-2.5 bg-[#f5f5f7] p-3 rounded-2xl border border-[rgba(0,0,0,0.04)] animate-pop"
               >
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-[#1d1d1f]">
+                    Senha Atual
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="Sua senha atual"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="h-8 text-xs bg-white border-[rgba(0,0,0,0.08)]"
+                  />
+                </div>
+
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-semibold text-[#1d1d1f]">
                     Nova Senha
@@ -471,6 +575,12 @@ export const ProfileDropdown: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* MODAL DE CONFIGURAÇÕES AVANÇADAS DE CONTA */}
+      <AccountSettingsModal
+        isOpen={showAccountSettingsModal}
+        onClose={() => setShowAccountSettingsModal(false)}
+      />
     </div>
   );
 };

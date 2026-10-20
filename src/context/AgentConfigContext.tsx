@@ -179,7 +179,52 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const mappedProfile = accountTypeToProfileType(data.account_type as AccountType);
           setConfig((prev) => {
             if (prev.profile !== mappedProfile) {
-              const updated = { ...prev, profile: mappedProfile };
+              const currentCatalogs = {
+                ...prev.catalogsByProfile,
+                [prev.profile]: prev.catalog,
+              };
+              const currentFaqs = {
+                ...prev.faqsByProfile,
+                [prev.profile]: prev.faq,
+              };
+              const currentPrompts = {
+                ...prev.promptsByProfile,
+                [prev.profile]: prev.prompt,
+              };
+              const currentFiles = {
+                ...prev.filesByProfile,
+                [prev.profile]: prev.files,
+              };
+
+              const nextCatalog =
+                currentCatalogs[mappedProfile] ||
+                initialConfig.catalogsByProfile[mappedProfile] ||
+                [];
+              const nextFaq =
+                currentFaqs[mappedProfile] ||
+                initialConfig.faqsByProfile[mappedProfile] ||
+                [];
+              const nextPrompt =
+                currentPrompts[mappedProfile] ||
+                initialConfig.promptsByProfile[mappedProfile] ||
+                "";
+              const nextFiles =
+                currentFiles[mappedProfile] ||
+                initialConfig.filesByProfile[mappedProfile] ||
+                [];
+
+              const updated: AgentConfig = {
+                ...prev,
+                profile: mappedProfile,
+                catalog: nextCatalog,
+                faq: nextFaq,
+                prompt: nextPrompt,
+                files: nextFiles,
+                catalogsByProfile: currentCatalogs,
+                faqsByProfile: currentFaqs,
+                promptsByProfile: currentPrompts,
+                filesByProfile: currentFiles,
+              };
               localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
               return updated;
             }
@@ -282,7 +327,34 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [config, savedConfig]);
 
   const patchConfig = (partial: Partial<AgentConfig>) => {
-    setConfig((prev) => ({ ...prev, ...partial }));
+    setConfig((prev) => {
+      const next: AgentConfig = { ...prev, ...partial };
+      if (partial.catalog) {
+        next.catalogsByProfile = {
+          ...prev.catalogsByProfile,
+          [prev.profile]: partial.catalog,
+        };
+      }
+      if (partial.faq) {
+        next.faqsByProfile = {
+          ...prev.faqsByProfile,
+          [prev.profile]: partial.faq,
+        };
+      }
+      if (partial.prompt !== undefined) {
+        next.promptsByProfile = {
+          ...prev.promptsByProfile,
+          [prev.profile]: partial.prompt,
+        };
+      }
+      if (partial.files) {
+        next.filesByProfile = {
+          ...prev.filesByProfile,
+          [prev.profile]: partial.files,
+        };
+      }
+      return next;
+    });
   };
 
   const patchProfileData = <K extends keyof AgentConfig["profileData"]>(
@@ -431,25 +503,78 @@ export const AgentConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       setUserProfile(data as UserProfile);
 
-      // Se account_type foi selecionado ou alterado, sincroniza config.profile
+      // Se account_type foi selecionado ou alterado, sincroniza config.profile sem data bleeding
       if (updates.account_type) {
         const nextProfile = accountTypeToProfileType(updates.account_type);
+        let configToPersist: AgentConfig | null = null;
+
         setConfig((prev) => {
-          const updated = { ...prev, profile: nextProfile };
+          // 1. Salva coleções atuais no perfil atual
+          const currentCatalogs = {
+            ...prev.catalogsByProfile,
+            [prev.profile]: prev.catalog,
+          };
+          const currentFaqs = {
+            ...prev.faqsByProfile,
+            [prev.profile]: prev.faq,
+          };
+          const currentPrompts = {
+            ...prev.promptsByProfile,
+            [prev.profile]: prev.prompt,
+          };
+          const currentFiles = {
+            ...prev.filesByProfile,
+            [prev.profile]: prev.files,
+          };
+
+          // 2. Extrai dados do próximo perfil (ou padrões seguros)
+          const nextCatalog =
+            currentCatalogs[nextProfile] ||
+            initialConfig.catalogsByProfile[nextProfile] ||
+            [];
+          const nextFaq =
+            currentFaqs[nextProfile] ||
+            initialConfig.faqsByProfile[nextProfile] ||
+            [];
+          const nextPrompt =
+            currentPrompts[nextProfile] ||
+            initialConfig.promptsByProfile[nextProfile] ||
+            "";
+          const nextFiles =
+            currentFiles[nextProfile] ||
+            initialConfig.filesByProfile[nextProfile] ||
+            [];
+
+          const updated: AgentConfig = {
+            ...prev,
+            profile: nextProfile,
+            catalog: nextCatalog,
+            faq: nextFaq,
+            prompt: nextPrompt,
+            files: nextFiles,
+            catalogsByProfile: currentCatalogs,
+            faqsByProfile: currentFaqs,
+            promptsByProfile: currentPrompts,
+            filesByProfile: currentFiles,
+          };
+
+          configToPersist = updated;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           return updated;
         });
-        setSavedConfig((prev) => ({ ...prev, profile: nextProfile }));
 
-        // Atualiza a linha de agent_configs na nuvem
-        await supabase.from("agent_configs").upsert(
-          {
-            user_id: user.id,
-            config: { ...config, profile: nextProfile },
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
+        if (configToPersist) {
+          setSavedConfig(configToPersist);
+          // Atualiza a linha de agent_configs na nuvem
+          await supabase.from("agent_configs").upsert(
+            {
+              user_id: user.id,
+              config: configToPersist,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" }
+          );
+        }
       }
 
       return true;

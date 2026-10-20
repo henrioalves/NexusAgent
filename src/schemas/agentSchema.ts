@@ -146,6 +146,107 @@ export const initialConfig: AgentConfig = {
     },
   ],
   files: [{ id: generateUUID(), name: "Guia-de-atendimento.pdf", size: "1.8 MB", uploadedAt: "2026-10-10" }],
+  catalogsByProfile: {
+    empresa: [
+      {
+        id: generateUUID(),
+        name: "Consulta inicial",
+        price: "R$ 250",
+        duration: "50",
+        description: "Avaliação inicial completa e montagem do plano personalizado.",
+      },
+      {
+        id: generateUUID(),
+        name: "Retorno",
+        price: "R$ 180",
+        duration: "30",
+        description: "Acompanhamento da evolução e ajuste de conduta.",
+      },
+    ],
+    profissional: [
+      {
+        id: generateUUID(),
+        name: "Consulta Especializada",
+        price: "R$ 350",
+        duration: "60",
+        description: "Atendimento técnico individual com avaliação detalhada.",
+      },
+      {
+        id: generateUUID(),
+        name: "Sessão de Acompanhamento",
+        price: "R$ 220",
+        duration: "45",
+        description: "Revisão e evolução do plano de atendimento.",
+      },
+    ],
+    pessoal: [
+      {
+        id: generateUUID(),
+        name: "Reunião de Alinhamento",
+        price: "Gratuito",
+        duration: "30",
+        description: "Alinhamento rápido de projetos e prioridades.",
+      },
+      {
+        id: generateUUID(),
+        name: "Mentoria / Café Estratégico",
+        price: "Sob consulta",
+        duration: "60",
+        description: "Conversa aprofundada sobre oportunidades e parcerias.",
+      },
+    ],
+  },
+  faqsByProfile: {
+    empresa: [
+      {
+        id: generateUUID(),
+        question: "Vocês atendem aos sábados?",
+        answer: "Sim, atendemos aos sábados das 08h às 12h mediante agendamento prévio.",
+      },
+      {
+        id: generateUUID(),
+        question: "Como posso remarcar meu horário?",
+        answer: "Basta nos enviar seu nome completo e o período de sua preferência para localizarmos novas opções.",
+      },
+    ],
+    profissional: [
+      {
+        id: generateUUID(),
+        question: "Atende por convênio ou plano de saúde?",
+        answer: "Trabalhamos com atendimento particular e emitimos recibo detalhado para pedido de reembolso junto ao seu plano.",
+      },
+      {
+        id: generateUUID(),
+        question: "Onde fica o consultório / escritório?",
+        answer: "Nosso endereço e detalhes de acesso estão disponíveis no perfil profissional ou via link do Google Maps.",
+      },
+    ],
+    pessoal: [
+      {
+        id: generateUUID(),
+        question: "Como agendar uma reunião ou call?",
+        answer: "Envie sua disponibilidade e o assunto principal para eu consultar a agenda e encaminhar o link do Google Meet.",
+      },
+      {
+        id: generateUUID(),
+        question: "Como tratar assuntos urgentes?",
+        answer: "Informe se o assunto é urgente para que eu notifique diretamente e priorize o contato.",
+      },
+    ],
+  },
+  promptsByProfile: {
+    empresa:
+      "Receba cada cliente com energia e entusiasmo. Ajude a encontrar produtos através do catálogo e informe com precisão preços e formas de pagamento aceitas. Nunca prometa produtos esgotados sem confirmação da equipe.",
+    profissional:
+      "Acolha cada paciente de forma atenciosa e empática. Entenda a especialidade e queixa antes de oferecer horários. Nunca dê diagnósticos nem prescreva medicamentos. Colete nome completo e confirme o horário com antecedência.",
+    pessoal:
+      "Atue como meu assistente executivo pessoal. Responda de forma direta, gentil e prestativa. Anote recados importantes, confirme datas para reuniões e filtre mensagens de baixa prioridade.",
+  },
+  filesByProfile: {
+    empresa: [{ id: generateUUID(), name: "Guia-de-atendimento.pdf", size: "1.8 MB", uploadedAt: "2026-10-10" }],
+    profissional: [{ id: generateUUID(), name: "Termo-de-atendimento.pdf", size: "1.2 MB", uploadedAt: "2026-10-10" }],
+    pessoal: [{ id: generateUUID(), name: "Bio-e-diretrizes.pdf", size: "0.8 MB", uploadedAt: "2026-10-10" }],
+  },
 };
 
 export const agentConfigSchema = z.object({
@@ -303,6 +404,97 @@ export const agentConfigSchema = z.object({
       })
     )
     .default([]),
+  catalogsByProfile: z
+    .object({
+      empresa: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          price: z.string(),
+          duration: z.string(),
+          description: z.string(),
+        })
+      ),
+      profissional: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          price: z.string(),
+          duration: z.string(),
+          description: z.string(),
+        })
+      ),
+      pessoal: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          price: z.string(),
+          duration: z.string(),
+          description: z.string(),
+        })
+      ),
+    })
+    .default(initialConfig.catalogsByProfile),
+  faqsByProfile: z
+    .object({
+      empresa: z.array(
+        z.object({
+          id: z.string(),
+          question: z.string(),
+          answer: z.string(),
+        })
+      ),
+      profissional: z.array(
+        z.object({
+          id: z.string(),
+          question: z.string(),
+          answer: z.string(),
+        })
+      ),
+      pessoal: z.array(
+        z.object({
+          id: z.string(),
+          question: z.string(),
+          answer: z.string(),
+        })
+      ),
+    })
+    .default(initialConfig.faqsByProfile),
+  promptsByProfile: z
+    .object({
+      empresa: z.string(),
+      profissional: z.string(),
+      pessoal: z.string(),
+    })
+    .default(initialConfig.promptsByProfile),
+  filesByProfile: z
+    .object({
+      empresa: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          size: z.string(),
+          uploadedAt: z.string().optional(),
+        })
+      ),
+      profissional: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          size: z.string(),
+          uploadedAt: z.string().optional(),
+        })
+      ),
+      pessoal: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          size: z.string(),
+          uploadedAt: z.string().optional(),
+        })
+      ),
+    })
+    .default(initialConfig.filesByProfile),
 });
 
 /**
@@ -347,6 +539,37 @@ export function safeHydrateConfig(raw: unknown): AgentConfig {
     delete obj.business;
   }
 
+  // Preenche mapas por perfil caso venham de versão anterior
+  const activeProfile = (obj.profile as ProfileType) || "empresa";
+
+  if (!obj.catalogsByProfile || typeof obj.catalogsByProfile !== "object") {
+    obj.catalogsByProfile = {
+      ...initialConfig.catalogsByProfile,
+      [activeProfile]: Array.isArray(obj.catalog) ? obj.catalog : initialConfig.catalogsByProfile[activeProfile],
+    };
+  }
+
+  if (!obj.faqsByProfile || typeof obj.faqsByProfile !== "object") {
+    obj.faqsByProfile = {
+      ...initialConfig.faqsByProfile,
+      [activeProfile]: Array.isArray(obj.faq) ? obj.faq : initialConfig.faqsByProfile[activeProfile],
+    };
+  }
+
+  if (!obj.promptsByProfile || typeof obj.promptsByProfile !== "object") {
+    obj.promptsByProfile = {
+      ...initialConfig.promptsByProfile,
+      [activeProfile]: typeof obj.prompt === "string" ? obj.prompt : initialConfig.promptsByProfile[activeProfile],
+    };
+  }
+
+  if (!obj.filesByProfile || typeof obj.filesByProfile !== "object") {
+    obj.filesByProfile = {
+      ...initialConfig.filesByProfile,
+      [activeProfile]: Array.isArray(obj.files) ? obj.files : initialConfig.filesByProfile[activeProfile],
+    };
+  }
+
   // Executa o parse do Zod com fallback seguro
   const parsed = agentConfigSchema.safeParse(obj);
   if (parsed.success) {
@@ -360,6 +583,22 @@ export function safeHydrateConfig(raw: unknown): AgentConfig {
     profileData: {
       ...initialConfig.profileData,
       ...((raw as Record<string, unknown>)?.profileData as Record<string, unknown> || {}),
+    },
+    catalogsByProfile: {
+      ...initialConfig.catalogsByProfile,
+      ...((raw as Record<string, unknown>)?.catalogsByProfile as Record<string, unknown> || {}),
+    },
+    faqsByProfile: {
+      ...initialConfig.faqsByProfile,
+      ...((raw as Record<string, unknown>)?.faqsByProfile as Record<string, unknown> || {}),
+    },
+    promptsByProfile: {
+      ...initialConfig.promptsByProfile,
+      ...((raw as Record<string, unknown>)?.promptsByProfile as Record<string, unknown> || {}),
+    },
+    filesByProfile: {
+      ...initialConfig.filesByProfile,
+      ...((raw as Record<string, unknown>)?.filesByProfile as Record<string, unknown> || {}),
     },
   };
 }

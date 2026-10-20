@@ -157,6 +157,10 @@ export interface AgentConfig {
   catalog: CatalogItem[];
   faq: FaqItem[];
   files: RagFile[];
+  catalogsByProfile: Record<ProfileType, CatalogItem[]>;
+  faqsByProfile: Record<ProfileType, FaqItem[]>;
+  promptsByProfile: Record<ProfileType, string>;
+  filesByProfile: Record<ProfileType, RagFile[]>;
 }
 
 export interface ProfileMeta {
