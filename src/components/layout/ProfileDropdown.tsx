@@ -14,9 +14,12 @@ import {
   Loader2,
   Building2,
   UserCheck,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAgentConfig } from "../../context/AgentConfigContext";
+import { useTheme } from "../../context/ThemeContext";
 import { supabase } from "../../services/supabase";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -27,6 +30,7 @@ export { getUserInitials };
 
 export const ProfileDropdown: React.FC = () => {
   const { user, userProfile, updateUserProfile, logout } = useAgentConfig();
+  const { isDark, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -301,15 +305,15 @@ export const ProfileDropdown: React.FC = () => {
           name={userProfile?.full_name}
           email={user?.email}
           size="sm"
-          className="shadow-xs hover:border-[rgba(0,0,0,0.18)] hover:bg-[#e5e5ea]"
+          className="shadow-xs hover:border-[rgba(0,0,0,0.18)] dark:hover:border-[rgba(255,255,255,0.25)] hover:bg-[#e5e5ea] dark:hover:bg-[#3a3a3c]"
         />
       </button>
 
       {/* DROPDOWN MENU */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2.5 w-[330px] sm:w-[360px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[rgba(0,0,0,0.08)] p-5 z-50 animate-pop text-left">
+        <div className="absolute right-0 top-full mt-2.5 w-[330px] sm:w-[360px] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.6)] border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.12)] p-5 z-50 animate-pop text-left transition-colors duration-200">
           {/* CABEÇALHO DO PERFIL */}
-          <div className="flex items-center gap-3.5 pb-4 border-b border-[rgba(0,0,0,0.06)]">
+          <div className="flex items-center gap-3.5 pb-4 border-b border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.08)]">
             <div className="relative flex-shrink-0">
               <UserAvatar
                 avatarUrl={userProfile?.avatar_url}
@@ -327,24 +331,24 @@ export const ProfileDropdown: React.FC = () => {
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-[#1d1d1f] truncate leading-tight">
+              <h3 className="text-sm font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate leading-tight">
                 {userProfile?.full_name || "Usuário NexusAgent"}
               </h3>
-              <p className="text-xs text-[#86868b] truncate">{user?.email}</p>
+              <p className="text-xs text-[#86868b] dark:text-[#98989d] truncate">{user?.email}</p>
             </div>
           </div>
 
-          {/* SEÇÃO: TIPO DE CONTA (SOMENTE LEITURA COM LINK PARA ÁREA AVANÇADA DE CONFIGURAÇÕES DE CONTA) */}
-          <div className="mt-3.5 p-3 bg-[#fafafa] rounded-2xl border border-[rgba(0,0,0,0.04)] flex items-center justify-between gap-2.5">
+          {/* SEÇÃO: TIPO DE CONTA */}
+          <div className="mt-3.5 p-3 bg-[#fafafa] dark:bg-[#2c2c2e] rounded-2xl border border-[rgba(0,0,0,0.04)] dark:border-[rgba(255,255,255,0.08)] flex items-center justify-between gap-2.5 transition-colors duration-200">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] grid place-items-center text-[#1d1d1f] shadow-xs flex-shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#1c1c1e] border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)] grid place-items-center text-[#1d1d1f] dark:text-[#f5f5f7] shadow-xs flex-shrink-0 transition-colors duration-200">
                 {getAccountTypeIcon()}
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868b] block leading-none mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868b] dark:text-[#98989d] block leading-none mb-1">
                   Tipo de Conta
                 </span>
-                <span className="text-xs font-bold text-[#1d1d1f] truncate block leading-tight">
+                <span className="text-xs font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate block leading-tight">
                   {getAccountTypeLabel()}
                 </span>
               </div>
@@ -356,11 +360,47 @@ export const ProfileDropdown: React.FC = () => {
                 setIsOpen(false);
                 setShowAccountSettingsModal(true);
               }}
-              className="text-[11px] font-semibold text-[#1d1d1f] hover:text-black flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#f5f5f7] shadow-xs transition-colors flex-shrink-0 cursor-pointer"
+              className="text-[11px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:text-black dark:hover:text-white flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#1c1c1e] border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)] hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c] shadow-xs transition-colors flex-shrink-0 cursor-pointer"
               title="Configurações avançadas de conta"
             >
               <span>Configurações</span>
               <ChevronRight size={12} />
+            </button>
+          </div>
+
+          {/* SEÇÃO: APARÊNCIA / TEMA (LIGHT & DARK MODE NO PADRÃO APPLE) */}
+          <div className="mt-3.5 p-3 bg-[#fafafa] dark:bg-[#2c2c2e] rounded-2xl border border-[rgba(0,0,0,0.04)] dark:border-[rgba(255,255,255,0.08)] flex items-center justify-between gap-2.5 transition-colors duration-200">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#1c1c1e] border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)] grid place-items-center text-[#1d1d1f] dark:text-[#f5f5f7] shadow-xs flex-shrink-0 transition-colors duration-200">
+                {isDark ? <Moon size={15} /> : <Sun size={15} />}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#86868b] dark:text-[#98989d] block leading-none mb-1">
+                  Aparência
+                </span>
+                <span className="text-xs font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate block leading-tight">
+                  {isDark ? "Tema Escuro" : "Tema Claro"}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              role="switch"
+              aria-checked={isDark}
+              aria-label="Alternar tema claro ou escuro"
+              className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer focus:outline-none relative flex items-center flex-shrink-0 ${
+                isDark ? "bg-[#30d158]" : "bg-[#e5e5ea]"
+              }`}
+            >
+              <span
+                className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 flex items-center justify-center text-[10px] ${
+                  isDark ? "translate-x-5 text-gray-900" : "translate-x-0 text-amber-500"
+                }`}
+              >
+                {isDark ? <Moon size={10} /> : <Sun size={10} />}
+              </span>
             </button>
           </div>
 
@@ -374,14 +414,14 @@ export const ProfileDropdown: React.FC = () => {
           />
 
           {/* SEÇÃO DE GERENCIAMENTO DE FOTO DE PERFIL */}
-          <div className="mt-4 p-3 bg-[#fafafa] rounded-2xl border border-[rgba(0,0,0,0.04)] flex items-center justify-between gap-2">
+          <div className="mt-3.5 p-3 bg-[#fafafa] dark:bg-[#2c2c2e] rounded-2xl border border-[rgba(0,0,0,0.04)] dark:border-[rgba(255,255,255,0.08)] flex items-center justify-between gap-2 transition-colors duration-200">
             <div className="flex items-center gap-2">
-              <Camera size={14} className="text-[#86868b]" />
+              <Camera size={14} className="text-[#86868b] dark:text-[#98989d]" />
               <div>
-                <span className="text-xs font-semibold text-[#1d1d1f] block leading-tight">
+                <span className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block leading-tight">
                   Foto de Perfil
                 </span>
-                <span className="text-[10px] text-[#86868b]">PNG, JPG ou WEBP (máx. 5MB)</span>
+                <span className="text-[10px] text-[#86868b] dark:text-[#98989d]">PNG, JPG ou WEBP (máx. 5MB)</span>
               </div>
             </div>
 
@@ -392,7 +432,7 @@ export const ProfileDropdown: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingPhoto}
                 loading={uploadingPhoto}
-                className="h-7 text-[11px] font-semibold px-2.5 rounded-lg flex items-center gap-1 bg-white hover:bg-[#f5f5f7]"
+                className="h-7 text-[11px] font-semibold px-2.5 rounded-lg flex items-center gap-1 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)] hover:bg-[#f5f5f7] dark:hover:bg-[#3a3a3c]"
               >
                 <Upload size={11} />
                 <span>{userProfile?.avatar_url ? "Trocar" : "Enviar"}</span>
@@ -402,7 +442,7 @@ export const ProfileDropdown: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleRemovePhoto}
-                  className="h-7 w-7 rounded-lg grid place-items-center text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
+                  className="h-7 w-7 rounded-lg grid place-items-center text-[#86868b] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   title="Remover foto de perfil"
                 >
                   <Trash2 size={12} />
@@ -414,12 +454,12 @@ export const ProfileDropdown: React.FC = () => {
           {/* SEÇÃO: EDITAR NOME */}
           <form onSubmit={handleSaveName} className="mt-3.5 flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-[#1d1d1f] flex items-center gap-1.5">
-                <User size={13} className="text-[#86868b]" />
+              <label className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
+                <User size={13} className="text-[#86868b] dark:text-[#98989d]" />
                 Nome Completo
               </label>
               {hasNameChanges && (
-                <span className="text-[10px] text-amber-600 font-medium">
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
                   Não salvo
                 </span>
               )}
@@ -430,7 +470,7 @@ export const ProfileDropdown: React.FC = () => {
               placeholder="Seu nome completo"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="h-9 text-xs bg-[#fafafa] border-[rgba(0,0,0,0.08)]"
+              className="h-9 text-xs bg-[#fafafa] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)]"
             />
 
             {hasNameChanges && (
@@ -438,7 +478,7 @@ export const ProfileDropdown: React.FC = () => {
                 type="submit"
                 variant="primary"
                 loading={savingName}
-                className="h-8 text-xs font-semibold bg-black text-white hover:bg-[#1d1d1f] rounded-xl flex items-center justify-center gap-1.5 mt-0.5"
+                className="h-8 text-xs font-semibold bg-black dark:bg-white text-white dark:text-black hover:bg-[#1d1d1f] dark:hover:bg-gray-200 rounded-xl flex items-center justify-center gap-1.5 mt-0.5 transition-colors"
               >
                 <Check size={13} />
                 <span>Salvar Nome</span>
@@ -447,7 +487,7 @@ export const ProfileDropdown: React.FC = () => {
           </form>
 
           {/* SEÇÃO: ALTERAR SENHA */}
-          <div className="mt-4 pt-3 border-t border-[rgba(0,0,0,0.06)]">
+          <div className="mt-4 pt-3 border-t border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.08)]">
             <button
               type="button"
               onClick={() => {
@@ -458,10 +498,10 @@ export const ProfileDropdown: React.FC = () => {
                 }
                 setShowPasswordChange(!showPasswordChange);
               }}
-              className="w-full flex items-center justify-between text-xs font-semibold text-[#1d1d1f] hover:text-black py-1.5 transition-colors"
+              className="w-full flex items-center justify-between text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:text-black dark:hover:text-white py-1.5 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Key size={14} className="text-[#86868b]" />
+                <Key size={14} className="text-[#86868b] dark:text-[#98989d]" />
                 <span>Alterar Senha</span>
               </div>
               {showPasswordChange ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -470,10 +510,10 @@ export const ProfileDropdown: React.FC = () => {
             {showPasswordChange && (
               <form
                 onSubmit={handleChangePassword}
-                className="mt-3 flex flex-col gap-2.5 bg-[#f5f5f7] p-3 rounded-2xl border border-[rgba(0,0,0,0.04)] animate-pop"
+                className="mt-3 flex flex-col gap-2.5 bg-[#f5f5f7] dark:bg-[#2c2c2e] p-3 rounded-2xl border border-[rgba(0,0,0,0.04)] dark:border-[rgba(255,255,255,0.08)] animate-pop"
               >
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-[#1d1d1f]">
+                  <label className="text-[11px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Senha Atual
                   </label>
                   <Input
@@ -481,12 +521,12 @@ export const ProfileDropdown: React.FC = () => {
                     placeholder="Sua senha atual"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="h-8 text-xs bg-white border-[rgba(0,0,0,0.08)]"
+                    className="h-8 text-xs bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)]"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-[#1d1d1f]">
+                  <label className="text-[11px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Nova Senha
                   </label>
                   <Input
@@ -494,12 +534,12 @@ export const ProfileDropdown: React.FC = () => {
                     placeholder="Mínimo 6 caracteres"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="h-8 text-xs bg-white border-[rgba(0,0,0,0.08)]"
+                    className="h-8 text-xs bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)]"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-[#1d1d1f]">
+                  <label className="text-[11px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Confirmar Nova Senha
                   </label>
                   <Input
@@ -507,7 +547,7 @@ export const ProfileDropdown: React.FC = () => {
                     placeholder="Repita a nova senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-8 text-xs bg-white border-[rgba(0,0,0,0.08)]"
+                    className="h-8 text-xs bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.1)]"
                   />
                 </div>
 
@@ -515,7 +555,7 @@ export const ProfileDropdown: React.FC = () => {
                   type="submit"
                   variant="primary"
                   loading={savingPassword}
-                  className="h-8 text-xs font-semibold bg-black text-white hover:bg-[#1d1d1f] rounded-xl flex items-center justify-center gap-1.5 mt-1"
+                  className="h-8 text-xs font-semibold bg-black dark:bg-white text-white dark:text-black hover:bg-[#1d1d1f] dark:hover:bg-gray-200 rounded-xl flex items-center justify-center gap-1.5 mt-1 transition-colors"
                 >
                   <Shield size={13} />
                   <span>Atualizar Senha</span>
@@ -525,7 +565,7 @@ export const ProfileDropdown: React.FC = () => {
           </div>
 
           {/* SEPARADOR VISUAL */}
-          <div className="my-3.5 border-t border-[rgba(0,0,0,0.06)]" />
+          <div className="my-3.5 border-t border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.08)]" />
 
           {/* BOTÃO SAIR DA CONTA (LOGOUT EM VERMELHO) */}
           <button
@@ -534,7 +574,7 @@ export const ProfileDropdown: React.FC = () => {
               setIsOpen(false);
               logout();
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-300 rounded-xl transition-colors cursor-pointer"
           >
             <LogOut size={15} />
             <span>Sair da Conta</span>

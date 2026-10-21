@@ -61,7 +61,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   return (
     <div
-      className={`rounded-full bg-[#f2f2f7] text-[#1d1d1f] flex items-center justify-center font-sans font-semibold border border-[rgba(0,0,0,0.08)] antialiased select-none overflow-hidden flex-shrink-0 transition-colors ${sizeClasses} ${className}`}
+      className={`rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center justify-center font-sans font-semibold border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.12)] antialiased select-none overflow-hidden flex-shrink-0 transition-colors ${sizeClasses} ${className}`}
     >
       {avatarUrl && !imgError ? (
         <img
@@ -71,7 +71,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           onError={() => setImgError(true)}
         />
       ) : (
-        <span className="leading-none tracking-tight font-sans font-semibold text-[#1d1d1f]">
+        <span className="leading-none tracking-tight font-sans font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
           {initials}
         </span>
       )}

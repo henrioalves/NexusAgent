@@ -66,7 +66,7 @@ export const Header: React.FC = () => {
             icon={PowerOff}
             iconSize={14}
             onClick={handleToggleAgent}
-            className="px-3.5 bg-white text-[#1d1d1f] hover:bg-red-50 hover:text-red-600 hover:border-red-200 border-[rgba(0,0,0,0.08)] shadow-sm flex items-center gap-1.5 transition-colors"
+            className="px-3.5 bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.12)] shadow-sm flex items-center gap-1.5 transition-colors"
             title="O agente está ativo. Clique para pausar."
             aria-label="Pausar Agente"
           >
@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
             icon={Power}
             iconSize={14}
             onClick={handleToggleAgent}
-            className="px-3.5 bg-black text-white hover:bg-[#1d1d1f] shadow-[0_2px_8px_rgba(0,0,0,0.12)] flex items-center gap-1.5 transition-all"
+            className="px-3.5 bg-black dark:bg-white text-white dark:text-black hover:bg-[#1d1d1f] dark:hover:bg-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.12)] flex items-center gap-1.5 transition-all"
             title="O agente está pausado. Clique para ativar."
             aria-label="Ativar Agente"
           >

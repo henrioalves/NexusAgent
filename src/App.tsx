@@ -1,6 +1,7 @@
 import React from "react";
 import { Toaster } from "sonner";
 import { Sparkles } from "lucide-react";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { AgentConfigProvider, useAgentConfig } from "./context/AgentConfigContext";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { AccountTypeSetup } from "./components/auth/AccountTypeSetup";
@@ -39,11 +40,11 @@ function AppContent() {
   // 1. Tela de Carregamento Inicial de Autenticação / Perfil
   if (authLoading || (user && profileLoading && !userProfile)) {
     return (
-      <div className="min-h-screen bg-[#f5f5f7] flex flex-col justify-center items-center p-4">
-        <div className="w-12 h-12 rounded-2xl bg-black text-white grid place-items-center mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.15)] animate-pulse">
+      <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#000000] flex flex-col justify-center items-center p-4 transition-colors duration-200">
+        <div className="w-12 h-12 rounded-2xl bg-black dark:bg-white text-white dark:text-black grid place-items-center mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.15)] animate-pulse">
           <Sparkles size={22} />
         </div>
-        <p className="text-xs text-[#86868b] font-medium tracking-wide">
+        <p className="text-xs text-[#86868b] dark:text-[#98989d] font-medium tracking-wide">
           Iniciando sessão segura NexusAgent...
         </p>
       </div>
@@ -118,23 +119,32 @@ function AppContent() {
   );
 }
 
+function ThemedToaster() {
+  const { theme } = useTheme();
+  return (
+    <Toaster
+      position="top-right"
+      richColors
+      theme={theme}
+      closeButton
+      toastOptions={{
+        style: {
+          fontFamily: "inherit",
+          borderRadius: "14px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+        },
+      }}
+    />
+  );
+}
+
 export default function App() {
   return (
-    <AgentConfigProvider>
-      <Toaster
-        position="top-right"
-        richColors
-        theme="light"
-        closeButton
-        toastOptions={{
-          style: {
-            fontFamily: "inherit",
-            borderRadius: "14px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-          },
-        }}
-      />
-      <AppContent />
-    </AgentConfigProvider>
+    <ThemeProvider>
+      <AgentConfigProvider>
+        <ThemedToaster />
+        <AppContent />
+      </AgentConfigProvider>
+    </ThemeProvider>
   );
 }

@@ -94,18 +94,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-[#f5f5f7] dark:bg-[#000000] flex flex-col justify-center items-center p-4 transition-colors duration-200">
       {/* CARD CENTRAL DE LOGIN NO ESTILO APPLE MONOCHROME */}
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-[rgba(0,0,0,0.08)] shadow-[0_24px_80px_rgba(0,0,0,0.06)] p-8 animate-pop">
+      <div className="w-full max-w-sm bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-3xl border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.12)] shadow-[0_24px_80px_rgba(0,0,0,0.06)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.6)] p-8 animate-pop transition-colors duration-200">
         {/* LOGO & CABEÇALHO */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-black text-white grid place-items-center mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
+          <div className="w-12 h-12 rounded-2xl bg-black dark:bg-white text-white dark:text-black grid place-items-center mb-4 shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-colors">
             <Sparkles size={22} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] mb-1.5">
+          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7] mb-1.5">
             NexusAgent
           </h1>
-          <p className="text-xs text-[#86868b] max-w-[260px] leading-relaxed">
+          <p className="text-xs text-[#86868b] dark:text-[#98989d] max-w-[260px] leading-relaxed">
             Painel exclusivo para configuração, personalização e monitoramento do seu agente de IA.
           </p>
         </div>
@@ -113,8 +113,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         {/* FORMULÁRIO FECHADO: APENAS E-MAIL, SENHA E ENTRAR */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[#1d1d1f] flex items-center gap-1.5">
-              <Mail size={13} className="text-[#86868b]" />
+            <label className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
+              <Mail size={13} className="text-[#86868b] dark:text-[#98989d]" />
               E-mail
             </label>
             <Input
@@ -125,13 +125,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="h-11 text-sm bg-[#fafafa] border-[rgba(0,0,0,0.1)] focus:border-black"
+              className="h-11 text-sm bg-[#fafafa] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border-[rgba(0,0,0,0.1)] dark:border-[rgba(255,255,255,0.12)]"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-[#1d1d1f] flex items-center gap-1.5">
-              <Lock size={13} className="text-[#86868b]" />
+            <label className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
+              <Lock size={13} className="text-[#86868b] dark:text-[#98989d]" />
               Senha
             </label>
             <Input
@@ -141,7 +141,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              className="h-11 text-sm bg-[#fafafa] border-[rgba(0,0,0,0.1)] focus:border-black"
+              className="h-11 text-sm bg-[#fafafa] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border-[rgba(0,0,0,0.1)] dark:border-[rgba(255,255,255,0.12)]"
             />
           </div>
 
@@ -159,7 +159,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             type="submit"
             variant="primary"
             loading={loading}
-            className="w-full h-11 mt-2 text-sm font-semibold bg-black text-white hover:bg-[#1d1d1f] shadow-[0_4px_16px_rgba(0,0,0,0.12)] flex items-center justify-center gap-2"
+            className="w-full h-11 mt-2 text-sm font-semibold bg-black dark:bg-white text-white dark:text-black hover:bg-[#1d1d1f] dark:hover:bg-gray-200 shadow-[0_4px_16px_rgba(0,0,0,0.12)] flex items-center justify-center gap-2 transition-colors"
           >
             <span>Entrar</span>
             {!loading && <ArrowRight size={15} />}
@@ -167,8 +167,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         </form>
 
         {/* AVISO INSTITUCIONAL DE SISTEMA FECHADO */}
-        <div className="mt-8 pt-6 border-t border-[rgba(0,0,0,0.06)] text-center">
-          <p className="text-[11px] text-[#86868b] leading-relaxed">
+        <div className="mt-8 pt-6 border-t border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.08)] text-center">
+          <p className="text-[11px] text-[#86868b] dark:text-[#98989d] leading-relaxed">
             Acesso restrito a clientes cadastrados. Para assinar ou solicitar suporte, entre em contato com seu gestor.
           </p>
         </div>

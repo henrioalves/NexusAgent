@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
   color: #1d1d1f;
@@ -12,6 +14,18 @@
   --control: #e5e5ea;
   --green: #34c759;
   --red: #ff3b30;
+}
+
+html.dark, .dark {
+  color: #f5f5f7;
+  background: #000000;
+  --ink: #f5f5f7;
+  --muted: #8e8e93;
+  --line: rgba(255, 255, 255, 0.12);
+  --soft: #1c1c1e;
+  --control: #2c2c2e;
+  --green: #30d158;
+  --red: #ff453a;
 }
 
 * { box-sizing: border-box; }
@@ -265,4 +279,319 @@ h1 { margin-bottom: 7px; font-size: 31px; line-height: 1.1; letter-spacing: -.03
   .savebar { flex-direction: column; align-items: stretch; padding: 12px; }
   .savebar > div:last-child { justify-content: flex-end; }
   .card { padding: 16px; }
+}
+
+/* ====================================================================
+   APPLE / IOS MONOCHROME DARK MODE STYLING & TRANSITIONS
+   ==================================================================== */
+html, body, .app-shell, .topbar, .tabs, .card, .modal, .drawer, .btn, .input, .segmented, .choice-card, .setting-row, .savebar, .badge, .status-chip, .notice, .warning, .faq-answer, .dropzone, .messages, .composer {
+  transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1), border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark body {
+  background: #000000;
+  color: #f5f5f7;
+}
+
+html.dark .topbar {
+  background: rgba(28, 28, 30, 0.85);
+  border-bottom: 1px solid var(--line);
+}
+
+html.dark .brand-mark {
+  background: #ffffff;
+  color: #000000;
+}
+
+html.dark .tabs {
+  background: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid var(--line);
+}
+
+html.dark .tabs button {
+  color: #8e8e93;
+}
+
+html.dark .tabs button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f5f7;
+}
+
+html.dark .tabs button.active {
+  color: #000000;
+  background: #ffffff;
+  box-shadow: 0 3px 12px rgba(255, 255, 255, 0.15);
+}
+
+html.dark .card {
+  background: #1c1c1e;
+  border-color: var(--line);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .modal {
+  background: rgba(28, 28, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f5f7;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+html.dark .drawer {
+  background: rgba(28, 28, 30, 0.94);
+  color: #f5f5f7;
+  box-shadow: -15px 0 60px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .btn-primary {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 3px 10px rgba(255, 255, 255, 0.12);
+}
+
+html.dark .btn-primary:hover {
+  background: #e5e5ea;
+}
+
+html.dark .btn-secondary {
+  background: #2c2c2e;
+  border-color: var(--line);
+  color: #f5f5f7;
+}
+
+html.dark .btn-secondary:hover,
+html.dark .btn-ghost:hover {
+  background: #3a3a3c;
+}
+
+html.dark .btn-ghost {
+  color: #8e8e93;
+}
+
+html.dark .btn-danger {
+  background: #1c1c1e;
+  color: var(--red);
+  border-color: rgba(255, 69, 58, 0.25);
+}
+
+html.dark .btn-danger:hover {
+  background: rgba(255, 69, 58, 0.15);
+}
+
+html.dark .input {
+  background: #2c2c2e;
+  border-color: var(--line);
+  color: #f5f5f7;
+}
+
+html.dark .input:focus {
+  border-color: #8e8e93;
+  background: #3a3a3c;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+html.dark .segmented {
+  background: #2c2c2e;
+}
+
+html.dark .segmented button {
+  color: #8e8e93;
+}
+
+html.dark .segmented button.selected {
+  background: #1c1c1e;
+  color: #ffffff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+}
+
+html.dark .choice-card,
+html.dark .goal-grid button,
+html.dark .wizard-options button {
+  background: #2c2c2e;
+  border-color: var(--line);
+  color: #f5f5f7;
+}
+
+html.dark .choice-card.selected,
+html.dark .goal-grid button.selected,
+html.dark .wizard-options button.selected {
+  border-color: #ffffff;
+  background: #1c1c1e;
+  box-shadow: inset 0 0 0 1px #ffffff;
+}
+
+html.dark .selected .radio {
+  border-color: #ffffff;
+}
+
+html.dark .selected .radio i {
+  background: #ffffff;
+}
+
+html.dark .switch {
+  background: #39393d;
+}
+
+html.dark .switch.on {
+  background: #ffffff;
+}
+
+html.dark .switch.on span {
+  background: #000000;
+}
+
+html.dark .switch.green.on {
+  background: var(--green);
+}
+
+html.dark .switch.green.on span {
+  background: #ffffff;
+}
+
+html.dark .check > button {
+  background: #2c2c2e;
+  border-color: #48484a;
+}
+
+html.dark .check > button.checked {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+html.dark .integration-icon,
+html.dark .date-badge,
+html.dark .avatar.subtle,
+html.dark .avatar.small {
+  background: #2c2c2e;
+  color: #f5f5f7;
+}
+
+html.dark .badge {
+  background: #2c2c2e;
+  color: #f5f5f7;
+}
+
+html.dark .badge.success {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30d158;
+}
+
+html.dark .notice,
+html.dark .warning {
+  background: #2c2c2e;
+  border-color: var(--line);
+  color: #aeaeb2;
+}
+
+html.dark .completion {
+  background: #2c2c2e;
+  color: var(--muted);
+}
+
+html.dark .permission-list {
+  background: #2c2c2e;
+}
+
+html.dark .faq-answer {
+  background: #2c2c2e;
+  color: #f5f5f7;
+}
+
+html.dark .dropzone {
+  background: #2c2c2e;
+  border-color: #48484a;
+}
+
+html.dark .file-icon {
+  background: #2c2c2e;
+  color: #f5f5f7;
+}
+
+html.dark .messages {
+  background: #1c1c1e;
+}
+
+html.dark .message.agent {
+  background: #2c2c2e;
+  color: #f5f5f7;
+}
+
+html.dark .message.user {
+  background: #ffffff;
+  color: #000000;
+}
+
+html.dark .composer {
+  background: rgba(28, 28, 30, 0.86);
+  border-top-color: var(--line);
+}
+
+html.dark .chat-context {
+  background: #2c2c2e;
+  border-bottom-color: var(--line);
+}
+
+html.dark .pills button {
+  background: #2c2c2e;
+  border-color: var(--line);
+  color: #f5f5f7;
+}
+
+html.dark .pills button.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+html.dark .range {
+  accent-color: #ffffff;
+}
+
+html.dark .status-chip {
+  border-color: var(--line);
+  color: #f5f5f7;
+}
+
+html.dark .master {
+  background: #2c2c2e;
+  color: #f5f5f7;
+}
+
+html.dark .steps span {
+  background: #2c2c2e;
+  color: #8e8e93;
+}
+
+html.dark .steps span.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+html.dark .steps:before {
+  background: #3a3a3c;
+}
+
+html.dark .oauth-icon {
+  background: #2c2c2e;
+}
+html.dark .oauth-icon svg {
+  color: #f5f5f7 !important;
+}
+
+html.dark .savebar {
+  background: rgba(44, 44, 46, 0.95);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html.dark .empty-integration > p {
+  color: #8e8e93;
+}
+
+html.dark .benefit-list {
+  color: #aeaeb2;
+}
+
+html.dark .table-row .input:hover,
+html.dark .table-row .input:focus {
+  background: #2c2c2e;
+  border-color: var(--line);
 }
